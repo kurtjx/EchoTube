@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"> 
+<head> 
+	<title>EchoTube</title> 
+	<meta http-equiv="Content-type" content="text/html;charset=UTF-8" /> 
+	<meta name="description" content="ill dubstep beats" /> 
+	<meta name="keywords" content="youtube, echonest, playlist" />	
+	<link type="text/css" rel="stylesheet" media="screen, projection" href="css/screen.css" />
+	<link type="text/css" rel="stylesheet" media="screen, projection" href="css/ui.css" /> 
+	<link type="text/css" rel="stylesheet" media="screen, projection" href="css/player.css" /> </head>
+<body> 
+	<div id="logo"> 
+	  kurtjx's EchoTube
+	</div> 
+ 
+	<h1> 
+	  <a href="/"> 
+		something
+	  </a> 
+	</h1> 
+ 
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script> 
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script> 
+	<script type="text/javascript" src="js/jquery.mousewheel.min.js"></script> 
+	<script type="text/javascript" src="js/player.js"></script> 
+	<script type="text/javascript" src="js/jquery.form.js"></script> 
+	<script type="text/javascript" src="js/ajax.playlist.js"></script> 
+ 
+	<div id="player"> 
+		<div id="player-video"> 
+			<div id="player-object"> 
+			  Use this form to create a nifty playlist :-)
+			</div> 
+		</div> 
+	</div>
+
+	<div id="form">
+	  <form id="new_playlist" action="/playlist/" method="get"/>
+	    type: 
+	      <select name="type">
+		<option value="artist-radio">similar artist radio</option>
+		<option value="artist">only this artist</option>
+		<option value="artist-description">artists' description</option>
+	      </select><br/>
+	    artist: <input type="text" name="artist" value="" /><br/>
+	    variety: <input type="text" name="variety" value="0.7" /><br/>
+	      max tempo: <input type="text" name="max_tempo" value="" /><br/>
+	      min tempo: <input type="text" name="min_tempo" value="" /><br/>
+	      song key:
+	      <select name="key">
+		<option value="">any key</option>
+		<option value="0">c</option>
+		<option value="1">c-sharp</option>
+		<option value="2">d</option>
+		<option value="3">e-flat</option>
+		<option value="4">e</option>
+		<option value="5">f</option>
+		<option value="6">f-sharp</option>
+		<option value="7">g</option>
+		<option value="8">a-flat</option>
+		<option value="9">a</option>
+		<option value="10">b-flat</option>
+		<option value="11">b</option>
+	      </select><br/>
+	    <input type="submit" value="create playlist"/>
+	</div>
+</body> 
+</html> 
