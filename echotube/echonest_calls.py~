@@ -1,0 +1,17 @@
+import urllib
+
+# kurtjx's api key hard coded, nice
+ECHO_NEST_API_KEY = 'NN5CXYTRMEXRFSPZZ'
+
+def get_playlist_description(descriptions):
+    params = {'api_key':ECHO_NEST_API_KEY,
+              'version': 3}
+    for k,v in params.items():
+        if isinstance(v, unicode):
+            params[k] = v.encode('utf-8')
+    params = urllib.urlencode(params)
+    url = 'http://developer.echonest.com/api/v4/playlist/static?%s' % params
+    for description in descriptions:
+        url+='&description='+description
+    print url
+    f = urllib.urlopen(url)
