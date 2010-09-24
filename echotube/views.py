@@ -27,7 +27,7 @@ def api(request):
                 params.update({key:value})
         try:
             enjson = echonest.playlist_description(descriptions, artists, params)
-        except echonest.EchonestAPIException as e:
+        except echonest.EchonestAPIException, e:
             return HttpResponse(dumps({'success':False,
                                        'message': e.value})
                                 )
