@@ -12,10 +12,12 @@ def api(request):
         descriptions = request.GET.getlist('description')
         artists = request.GET.getlist('artist')
         terms = request.GET.getlist('term')
+        
         if len(descriptions)>0 and descriptions[0]!='':
             title = descriptions[0]
         elif len(artists)>0:
             title = artists[0]
+            if descriptions[0]=='': descriptions=[]
         else:
             title = 'untitled'
         print 'title is: '+title
