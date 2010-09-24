@@ -9,7 +9,7 @@ import gdata.youtube.service
 import unicodedata
 
 def search(query_text):
-    print type(query_text)
+    #print type(query_text)
     # TODO fucking fix fucking unicode shit
     name = query_text.encode('ascii','replace')
     service = gdata.youtube.service.YouTubeService()

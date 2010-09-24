@@ -8,7 +8,7 @@ import os
 
 urlpatterns = patterns('',
     # Example:
-    # (r'^EchoList/', include('EchoList.foo.urls')),
+    # (r'^EchoTube/', include('EchoTube.foo.urls')),
                        
 
     # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
@@ -19,6 +19,6 @@ urlpatterns = patterns('',
     # (r'^admin/', include(admin.site.urls)),
     (r'^s/(?P<path>.*)$', 'django.views.static.serve',
      {'document_root':os.path.join(settings.PROJECT_PATH, 'static')}),
-    (r'^playlist/', 'EchoList.echotube.views.playlist'),
+    (r'^api/', 'EchoTube.echotube.views.api'),
     
 )

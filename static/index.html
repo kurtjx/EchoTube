@@ -1,68 +1,165 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"> 
 <head> 
-	<title>EchoTube</title> 
-	<meta http-equiv="Content-type" content="text/html;charset=UTF-8" /> 
-	<meta name="description" content="ill dubstep beats" /> 
-	<meta name="keywords" content="youtube, echonest, playlist" />	
-	<link type="text/css" rel="stylesheet" media="screen, projection" href="css/screen.css" />
-	<link type="text/css" rel="stylesheet" media="screen, projection" href="css/ui.css" /> 
-	<link type="text/css" rel="stylesheet" media="screen, projection" href="css/player.css" /> </head>
-<body> 
-	<div id="logo"> 
-	  kurtjx's EchoTube
-	</div> 
- 
-	<h1> 
-	  <a href="/"> 
-		something
-	  </a> 
-	</h1> 
- 
-	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script> 
-	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script> 
-	<script type="text/javascript" src="js/jquery.mousewheel.min.js"></script> 
-	<script type="text/javascript" src="js/player.js"></script> 
-	<script type="text/javascript" src="js/jquery.form.js"></script> 
-	<script type="text/javascript" src="js/ajax.playlist.js"></script> 
- 
-	<div id="player"> 
-		<div id="player-video"> 
-			<div id="player-object"> 
-			  Use this form to create a nifty playlist :-)
-			</div> 
-		</div> 
-	</div>
+  <title>EchoTube</title> 
+  <meta http-equiv="Content-type" content="text/html;charset=UTF-8" /> 
+  <meta name="description" content="youtube playlists from echonest" /> 
+  <meta name="keywords" content="youtube, echonest, playlist" />	
+  <link type="text/css" rel="stylesheet" media="screen, projection" href="css/ui.css" /> 
+  <link type="text/css" rel="stylesheet" media="screen, projection" href="css/grid.css" /> 
+  <link type="text/css" rel="stylesheet" media="screen, projection" href="css/player.css" />
+</head>
 
-	<div id="form">
-	  <form id="new_playlist" action="/playlist/" method="get"/>
-	    type: 
-	      <select name="type">
-		<option value="artist-radio">similar artist radio</option>
-		<option value="artist">only this artist</option>
-		<option value="artist-description">artists' description</option>
-	      </select><br/>
-	    artist: <input type="text" name="artist" value="" /><br/>
-	    variety: <input type="text" name="variety" value="0.7" /><br/>
-	      max tempo: <input type="text" name="max_tempo" value="" /><br/>
-	      min tempo: <input type="text" name="min_tempo" value="" /><br/>
-	      song key:
-	      <select name="key">
-		<option value="">any key</option>
-		<option value="0">c</option>
-		<option value="1">c-sharp</option>
-		<option value="2">d</option>
-		<option value="3">e-flat</option>
-		<option value="4">e</option>
-		<option value="5">f</option>
-		<option value="6">f-sharp</option>
-		<option value="7">g</option>
-		<option value="8">a-flat</option>
-		<option value="9">a</option>
-		<option value="10">b-flat</option>
-		<option value="11">b</option>
-	      </select><br/>
-	    <input type="submit" value="create playlist"/>
-	</div>
+<body> 
+  <div id="logo">
+    EchoTube
+  </div> 
+ 
+  <h1><a href="/">something</a></h1> 
+ 
+  <script type="text/javascript" 
+	  src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script> 
+  <script type="text/javascript" 
+	  src="http://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script> 
+  <script type="text/javascript" src="js/jquery.mousewheel.min.js"></script> 
+  <script type="text/javascript" src="js/player.js"></script> 
+  <script type="text/javascript" src="js/jquery.form.js"></script> 
+  <script type="text/javascript" src="js/echotube.js"></script> 
+
+  <div class="container_12">
+  <div class="grid_8">
+  <div id="player"> 
+    <div id="player-video">
+      <div id="player-object"> 
+	You need Flash player 8+ and JavaScript enabled.
+      </div> 
+    </div> 
+  </div>
+  </div>
+  
+
+  <script type="text/javascript">
+    $("#player").player({
+                        playlists: playlists,
+			updateHash: 0,
+		        repeat: 1
+		});
+  </script> 
+
+  
+  <div class="grid_4">
+  <div id="form">
+    <h3>Create Playlist</h3>
+    <p id="form-text">Use this form to create a new playlist</p>
+    <form id="new_playlist_form" action="/api/" method="get">
+      <fieldset id="outer-field">
+	<legend>seed</legend>
+	<label>type:</label>
+	<select id="pl-type" name="type">
+	  <option value="artist-radio">similar artist radio</option>
+	  <option value="artist">only this artist</option>
+	  <option value="artist-description">artists' description</option>
+	</select><br/>
+	<label id="pl-artist">artist:</label>
+	<input id="pl-artist" type="text" 
+	       name="artist" value="" 
+	       placeholder="seed artist for playlist">
+	  <br/>
+	<label id="pl-desc">description:</label>
+	<input id="pl-desc" type="text" 
+	       name="description" value="" placeholder="tags to make a playlist"/>
+	<br/>
+      </fieldset>
+      <fieldset id="outer-field">
+	<legend>path</legend>
+      <fieldset>
+	<legend>artist attributes</legend>
+	<label>variety:</label>
+	<input type="number" name="variety" value="0.7" 
+	       size="4" min="0.0" max="1.0" step="0.1"/><br/>
+	<label>familiarity:</label>
+	<input type="number" size="4" min="0.0" max="1.0" step="0.1"
+	       name="artist_min_familiarity" placeholder="min"/>
+	<input type="number" size="4" min="0.0" max="1.0" step="0.1"
+	       name="artist_max_familiarity" placeholder="max"/>
+	<label>hotttnesss:</label>
+	<input type="number" size="4" min="0.0" max="1.0" step="0.1"
+	       name="artist_min_hotttnesss" placeholder="min"/>
+	<input type="number" size="4" min="0.0" max="1.0" step="0.1"
+	       name="artist_max_hotttnesss" placeholder="max"/>
+	<label>longitude:</label>
+	<input type="number" size="4" min="-180.0" max="180.0" step="10"
+	       name="artist_min_longitude" placeholder="min"/>
+	<input type="number" size="4" min="-180.0" max="180.0" step="10"
+	       name="artist_max_longitude" placeholder="max"/>
+	<label>latitude:</label>
+	<input type="number" size="4" min="-00.0" max="90.0" step="10"
+	       name="artist_min_latitude" placeholder="min"/>
+	<input type="number" size="4" min="-90.0" max="90.0" step="10"
+	       name="artist_max_latitude" placeholder="max"/>
+      </fieldset>
+      <fieldset>
+	<legend>song attributes</legend>
+      <label>tempo:</label>
+      <input type="number" size="3" min="0" max="500" 
+	     name="min_tempo" value="" placeholder="min"/>
+      <input type="number" size="3" min="0" max="500"
+	     name="max_tempo" value="" placeholder="max"/><br/>
+      <label>song key:</label>
+      <select name="key">
+	<option value="">any key</option>
+        <option value="0">c</option>
+        <option value="1">c-sharp</option>
+        <option value="2">d</option>
+        <option value="3">e-flat</option>
+        <option value="4">e</option>
+        <option value="5">f</option>
+        <option value="6">f-sharp</option>
+        <option value="7">g</option>
+        <option value="8">a-flat</option>
+        <option value="9">a</option>
+        <option value="10">b-flat</option>
+        <option value="11">b</option>
+       </select><br/>
+      <label>mode</label>
+      <select name="mode">
+	<option value="">any mode</option>
+	<option value="0">minor</option>
+	<option value="1">major</option>
+      </select><br/>
+      <label>duration:</label>
+      <input type="number" min="0.0" max="3600.0" 
+	     name="min_duration" placeholder="min (sec)" size="4"/>
+      <input type="number" min="0.0" max="3600.0" 
+	     name="max_duration" placeholder="max (sec)" size="4"/>
+      <br/>
+      <label>loudness:</label>
+      <input type="number" min="-100.0" max="100.0" name="min_loudness" placeholder="min (db)" size="4"/>
+      <input type="number" min="-100.0" max="100.0" name="max_loudness" placeholder="max (db)" size="4"/>
+      <br/>
+      <label>hotttnesss:</label>
+      <input type="number" step="0.1" min="0.0" max="1.0" size="4"
+	     name="song_min_hotttnesss" placeholder="min"/>
+      <input type="number" step="0.1" min="0.0" max="1.0" size="4"
+	     name="song_max_hotttnesss" placeholder="max"/>
+      </fieldset>
+      <label>sort order:</label>
+	<select name="sort">
+	  <option value="tempo-asc">tempo-asc</option><option value="duration-asc">duration-asc</option><option value="loudness-asc">loudness-asc</option><option value="artist_familiarity-asc">artist_familiarity-asc</option><option value="artist_hotttnesss-asc">artist_hotttnesss-asc</option><option value="song_hotttness-asc">song_hotttness-asc</option><option value="latitude-asc">latitude-asc</option><option value="longitude-asc">longitude-asc</option><option value="mode-asc">mode-asc</option><option value="key-asc">key-asc</option><option value="tempo-desc">tempo-desc</option><option value="duration-desc">duration-desc</option><option value="loudness-desc">loudness-desc</option><option value="artist_familiarity-desc">artist_familiarity-desc</option><option value="artist_hotttnesss-desc">artist_hotttnesss-desc</option><option value="song_hotttnesss-desc">song_hotttnesss-desc</option><option value="latitude-desc">latitude-desc</option><option value="longitude-desc">longitude-desc</option><option value="mode-desc">mode-desc</option><option value="key-desc">key-desc</option>
+	  </select><br/>
+
+      </fieldset>
+      <fieldset id="outer-field">
+	<legend>append terms</legend>
+	<input type="checkbox" name="term" value="live"/><span id="checkbox">live</span>
+	<input type="checkbox" name="term" value="concert"/><span id="checkbox">concert</span><br/>
+	<input type="checkbox" name="term" value="official"/><span id="checkbox">official</span>
+	<input type="checkbox" name="term" value="video"/><span id="checkbox">video</span><br/>
+      </fieldset>
+       <input type="submit" value="create playlist"/>
+    </form>
+  </div>
+  </div>
+    </div>
 </body> 
 </html> 

@@ -1,8 +1,15 @@
 import urllib
 import simplejson
+from django.conf import settings
 
 # kurtjx's api key hard coded, nice
 ECHO_NEST_API_KEY = 'NN5CXYTRMEXRFSPZZ'
+
+class EchonestAPIException(Exception):
+    def __init__(self, value):
+        self.value = 'Echonest API error: '+value
+    def __str__(self):
+        return repr(self.value)
 
 def playlist_description(descriptions=[], artists=[], params=None):
     params.update({'api_key':ECHO_NEST_API_KEY,
@@ -18,12 +25,11 @@ def playlist_description(descriptions=[], artists=[], params=None):
         url+='&description='+urllib.quote_plus(description.encode('utf-8'))
     for artist in artists:
         url+='&artist='+urllib.quote_plus(artist.encode('utf-8'))
-    print url
+    if settings.DEBUG: print url
     f = urllib.urlopen(url)
     response = simplejson.loads(f.read())['response']
-    print response
+    if settings.DEBUG: print response
     if response['status']['code'] == 0:
         return response['songs']
     else:
-        print response
-        return None
+        raise EchonestAPIException(response['status']['message'])

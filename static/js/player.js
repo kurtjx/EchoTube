@@ -14,13 +14,13 @@
 
 			$(this).data('player', new player(this, options));
 		});
-	}
+	};
 
 	function player(obj, options){
 
 		this.options = $.extend({
-			width: 425,
-			height: 356,
+			width: 638,//425,
+			height: 534,
 			swfobject: window.swfobject,
 			playlists: [],
 			defaultPlaylist: 0,
@@ -31,7 +31,7 @@
 			autoStart: 0,
 			shuffle: 0,
 			updateHash: 0,
-			videoParams: { 
+			videoParams: {
 				allowScriptAccess: 'always'
 			},
 			toolbar: {
@@ -54,7 +54,7 @@
 	}
 
 	player.prototype = {
-		
+
 		state: -1, timer: {}, router: {}, videoIds: [], elements: {},
 
 		init : function(obj){
@@ -66,7 +66,7 @@
 			this.elements.$playerObject = $('#player-object');
 
 			this.keys = {
-				video: 0, 
+				video: 0,
 				playlist: this.options.defaultPlaylist
 			};
 
@@ -82,7 +82,7 @@
 						.bindPlayerEvents()
 						.bindYtEvents()
 						.initRouter();
-				}, 
+				},
 				function(){ // error
 
 					this.elements.$playerObject
@@ -106,14 +106,14 @@
 					type: 'GET',
 					url: self.options.playlistProxy + '?url=' + playlist,
 					dataType: 'json',
-					error: function(){ 
-						error.call( self ); 
+					error: function(){
+						error.call( self );
 					},
 					success: function(json){
 
-						if (!json) { 
-							error.call( self ); 
-							return; 
+						if (!json) {
+							error.call( self );
+							return;
 						}
 
 						// replace playlist url with json array
@@ -151,38 +151,38 @@
 
 					if (self.options.updateHash) {
 
-						window.location.hash = 
-							'/' + self.router.actions[0] + 
+						window.location.hash =
+							'/' + self.router.actions[0] +
 							'/' + self.options.playlists[self.keys.playlist].videos[self.keys.video].id;
 					}
 				}
 			};
 			switch(this.router.actions[0]){
-				case 'v' : 
-					this.keys.video = 
-						this.router.actions[1] ? $.inArray(this.router.actions[1], this.videoIds) : this.keys.video; 
+				case 'v' :
+					this.keys.video =
+						this.router.actions[1] ? $.inArray(this.router.actions[1], this.videoIds) : this.keys.video;
 					break;
-				case 'p' : 
-					this.keys.video = $.inArray(this.router.actions[1], this.videoIds); 
-					this.keys.play = 1; 
+				case 'p' :
+					this.keys.video = $.inArray(this.router.actions[1], this.videoIds);
+					this.keys.play = 1;
 					break;
-				default : 
+				default :
 					break;
-			} 
+			}
 		},
-		
+
 		bindYtEvents : function(){
 
 			var self = this;
 
-			window.onYouTubePlayerReady = function(){ 
+			window.onYouTubePlayerReady = function(){
 
-				self.ytplayerEventRouter(9); 
+				self.ytplayerEventRouter(9);
 			};
 
-			window._ytplayerevents = function(state){ 
+			window._ytplayerevents = function(state){
 
-				self.ytplayerEventRouter(state); 
+				self.ytplayerEventRouter(state);
 			};
 
 			return this;
@@ -204,21 +204,21 @@
 			if (state != this.state) {
 
 				switch(this.state = state) {
-					case 0	: 
-						this.events.yt.videoEnded( this ); 
+					case 0	:
+						this.events.yt.videoEnded( this );
 						break;
-					case 1 : 
+					case 1 :
 						this.events.yt.videoPlay( this );
 						break;
-					case 3 : 
-						this.events.yt.videoBuffer( this ); 
+					case 3 :
+						this.events.yt.videoBuffer( this );
 						break;
-					case 100: 
+					case 100:
 					case 101:
 					case 150:
 						this.events.yt.error( this, state );
 						break;
-					case 9 : 
+					case 9 :
 						this.events.yt.ready( this );
 						break;
 				}
@@ -266,7 +266,7 @@
 					player.events.play(player);
 				}
 			},
-			shuffle : function(player, button){ 
+			shuffle : function(player, button){
 
 				player.randomVideo();
 
@@ -390,18 +390,18 @@
 			scrollbar : {
 				up : function(player, button){
 
-					player.elements.scrollbar.pos = 
-						player.elements.scrollbar.pos > player.elements.$playlist.find('li:first').height() ? 
-						player.elements.scrollbar.pos - player.elements.$playlist.find('li:first').height() : 
+					player.elements.scrollbar.pos =
+						player.elements.scrollbar.pos > player.elements.$playlist.find('li:first').height() ?
+						player.elements.scrollbar.pos - player.elements.$playlist.find('li:first').height() :
 						0;
 
 					player.elements.$playlistScroller.scrollTop(player.elements.scrollbar.pos);
 				},
 				down : function(player, button){
 
-					player.elements.scrollbar.pos = 
-						player.elements.scrollbar.pos < player.elements.$playlist.outerHeight() - player.elements.$playlistScroller.outerHeight() ? 
-						player.elements.scrollbar.pos + player.elements.$playlist.find('li:first').height() : 
+					player.elements.scrollbar.pos =
+						player.elements.scrollbar.pos < player.elements.$playlist.outerHeight() - player.elements.$playlistScroller.outerHeight() ?
+						player.elements.scrollbar.pos + player.elements.$playlist.find('li:first').height() :
 						player.elements.scrollbar.pos;
 
 					player.elements.$playlistScroller.scrollTop(player.elements.scrollbar.pos);
@@ -416,7 +416,7 @@
 			this.elements.$loader.hide();
 
 			if (
-				( this.elements.toolbar.buttons.play.obj.data('state') || this.elements.toolbar.buttons.pause.obj.data('state') ) 
+				( this.elements.toolbar.buttons.play.obj.data('state') || this.elements.toolbar.buttons.pause.obj.data('state') )
 				&& this.elements.$infobar.css('opacity') < 1
 			) {
 				clearTimeout(this.timer.hideInfo);
@@ -428,9 +428,9 @@
 						.css({ opacity: 0 })
 						.html(text || self.options.playlists[self.keys.playlist].videos[self.keys.video].title)
 						.unbind('click')
-						.click(function(){ 
+						.click(function(){
 
-							window.open(self.ytplayer.getVideoUrl()); 
+							window.open(self.ytplayer.getVideoUrl());
 						})
 						.animate({ opacity: 1 }, 180, function(){
 
@@ -494,7 +494,7 @@
 			this.elements.$playerVideo.height(this.options.height);
 
 			(this.options.swfobject) && this.options.swfobject.embedSWF(
-				'http://www.youtube.com/apiplayer?enablejsapi=1&version=3&playerapiid=ytplayer&hd=1&showinfo=0', 
+				'http://www.youtube.com/apiplayer?enablejsapi=1&version=3&playerapiid=ytplayer&hd=1&showinfo=0',
 				this.ytplayer.id, this.options.width, this.options.height, '8', null, null, this.options.videoParams
 			);
 
@@ -513,8 +513,8 @@
 						this.obj.removeClass('ui-state-active');
 
 						(this.obj.data('state')) &&
-						(this.toggle || 
-							(this.toggleButton && 
+						(this.toggle ||
+							(this.toggleButton &&
 							self.elements.toolbar.buttons[this.toggleButton])) &&
 							this.obj.addClass('ui-state-active');
 					});
@@ -523,16 +523,16 @@
 
 			$.each(this.elements.toolbar.buttons, function(key) {
 
-				if (this.disabled) { 
+				if (this.disabled) {
 
 					delete self.elements.toolbar.buttons[key];
 
-					return true; 
+					return true;
 				}
 
 				var buttonObj = this;
 
-				this.obj = 
+				this.obj =
 					$('<li class="ui-state-default ui-corner-all">')
 					.append('<span class="ui-icon '+this.cssclass+'">')
 					.attr('title', this.text)
@@ -541,11 +541,11 @@
 					.bind('mouseleave', function(){ $(this).toggleClass('ui-state-hover'); })
 					.click(function(){
 
-						var button = 
+						var button =
 							$(this)
 							.data('state', $(this).data('state') && buttonObj.toggle ? 0 : 1)
 							.data('button');
-	
+
 						if (buttonObj.toggleButton) {
 
 							self.elements.toolbar.buttons[buttonObj.toggleButton].obj.data('state', 0);
@@ -580,14 +580,14 @@
 		createPlaylists : function(){
 
 			var self = this;
-			
-			this.elements.$playlistsContainer = 
+
+			this.elements.$playlistsContainer =
 				$('<div id="player-playlists">')
 				.height(this.options.height)
 				.append('<div class="player-playlists-heading">');
 
 			this.elements.$playlists = $('<ol>');
-			
+
 			$.each(this.options.playlists, function(key){
 
 				$('<li></li>')
@@ -658,14 +658,14 @@
 			this.elements.$playlist = this.elements.$playlist || $('<ol id="player-playlist">');
 
 			this.elements.scrollbar = this.elements.scrollbar || {
-				bar : 
+				bar :
 					$('<div id="player-playlist-scrollbar">')
 						.appendTo(this.elements.$playlistContainer),
-				up : 
+				up :
 					$('<span id="player-playlist-scrollbar-up" class="ui-icon ui-icon-circle-triangle-n">')
 						.click(function(){ self.events.scrollbar.up(self); })
 						.appendTo(this.elements.$playlistContainer),
-				down : 
+				down :
 					$('<span id="player-playlist-scrollbar-down" class="ui-icon ui-icon-circle-triangle-s">')
 						.click(function(){ self.events.scrollbar.down(self); })
 						.appendTo(this.elements.$playlistContainer),

@@ -1,4 +1,4 @@
-# Django settings for EchoList project.
+# Django settings for EchoTube project.
 import os
 PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
 
@@ -65,7 +65,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
 )
 
-ROOT_URLCONF = 'EchoList.urls'
+ROOT_URLCONF = 'EchoTube.urls'
 
 TEMPLATE_DIRS = (
     os.path.join(PROJECT_PATH, 'templates')

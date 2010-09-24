@@ -4,6 +4,7 @@ body {
 	color: #fff;
 	font: normal 14px/1 Arial;
 	padding: 3em;
+	width:960px;
 }
 h1 {
 	font-size: 200%;
@@ -20,6 +21,7 @@ h1 {
 #player {
 	float: left;
 	position: relative;
+	display:block;
 }
 #player-video {
 }
@@ -141,5 +143,43 @@ h1 {
 	display: block;
 	height: 18px;
 	margin: 10px 0 4px 16px;
-	background: url(../img/playlists.gif) no-repeat 0 0;
+	/*background: url(../img/playlists.gif) no-repeat 0 0;*/
+}
+
+/* form stuff */
+#form {
+    padding-left: 2em;
+}
+
+label {
+    width: 6em;
+    float: left;
+    text-align: right;
+    margin-right: 0.5em;
+    display: block
+}
+
+.submit input { margin-left: 4.5em;} 
+input{ border: 1px solid #282828; margin: 0.1em;}
+
+fieldset
+{
+border: 1px solid #282828;
+/*margin: 2em;
+/*width: 20em*/
+}
+#outer-field { width: 21em;}
+
+legend
+{
+color: #fff;
+background: #303030;
+border: 1px solid #282828;
+padding: 2px 6px;
+}
+
+#checkbox{width: 6em; display:inline-block; }
+
+#error{
+background: #D00000;
 }
