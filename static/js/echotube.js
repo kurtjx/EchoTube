@@ -35,13 +35,14 @@ $(document).ready(
   });
 
 function resetPlayer(response) {
-  $('input[type=submit]').removeAttr("disabled");
+  $('input').removeAttr("disabled");
+  $('select').removeAttr("disabled");
   if(response.success){
 
     playlists.unshift(response.playlist);
     //console.log(playlists);
 
-    $("#form-text").html('Use this form to create a new playlist');
+    $("#err-text").html('');
     // fix youtube player bug
     $("#player-playlists").remove();
     // clear old player
@@ -54,14 +55,16 @@ function resetPlayer(response) {
 		      });
   }
   else{
-    $("#form-text").html('<span id="error">' + response.message + '</span><br/>Use this form to create a new playlist');
+    $("#err-text").html('<span id="error">' + response.message + '</span>');
   }
 
 }
 
 
 function waiting(){
-  $('input[type=submit]').attr('disabled', 'disabled');
-  $("#form-text").html('creating playlist, plz be patient <img src="img/player_spinner.gif" alt="waiting"/>');
+  //$('input[type=submit]').attr('disabled', 'disabled');
+  $('input').attr('disabled', 'disabled');
+  $('select').attr('disabled','disabled');
+  $("#err-text").html('creating playlist, plz be patient <img src="img/player_spinner.gif" alt="waiting"/>');
   return true;
 }

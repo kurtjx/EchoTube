@@ -9,10 +9,15 @@ body {
 h1 {
 	font-size: 200%;
 	margin-bottom: .6em;
+	color: #fff;
 	text-shadow: 2px 2px 2px #bb0000;
-	text-indent: -400px;
+	/*text-indent: -400px;*/
 	/*background: url(/img/logo.gif) no-repeat;*/
 	height: 37px;
+}
+a {
+    color: #C0C0C0;
+    text-decoration: none;
 }
 #logo {
 	float: right;
@@ -160,7 +165,7 @@ label {
 }
 
 .submit input { margin-left: 4.5em;} 
-input{ border: 1px solid #282828; margin: 0.1em;}
+input{ border: 1px solid #282828; margin: 0.1em; background: #E8E8E8; }
 
 fieldset
 {

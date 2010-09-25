@@ -12,10 +12,10 @@
 
 <body> 
   <div id="logo">
-    EchoTube
+    looks best with an <a href="http://en.wikipedia.org/wiki/Comparison_of_layout_engines_(HTML5)">HTML5 Browser</a>
   </div> 
  
-  <h1><a href="/">something</a></h1> 
+  <h2><a href="/">EchoTube</a></h2> 
  
   <script type="text/javascript" 
 	  src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script> 
@@ -49,8 +49,6 @@
   
   <div class="grid_4">
   <div id="form">
-    <h3>Create Playlist</h3>
-    <p id="form-text">Use this form to create a new playlist</p>
     <form id="new_playlist_form" action="/api/" method="get">
       <fieldset id="outer-field">
 	<legend>seed</legend>
@@ -75,37 +73,32 @@
       <fieldset>
 	<legend>artist attributes</legend>
 	<label>variety:</label>
-	<input type="number" name="variety" value="0.7" 
-	       size="4" min="0.0" max="1.0" step="0.1"/><br/>
+	<input type="range" name="variety" 
+	       size="8" min="0.0" max="1.0" step="0.05"/><br/>
 	<label>familiarity:</label>
 	<input type="number" size="4" min="0.0" max="1.0" step="0.1"
 	       name="artist_min_familiarity" placeholder="min"/>
 	<input type="number" size="4" min="0.0" max="1.0" step="0.1"
-	       name="artist_max_familiarity" placeholder="max"/>
+	       name="artist_max_familiarity" placeholder="max"/><br/>
 	<label>hotttnesss:</label>
 	<input type="number" size="4" min="0.0" max="1.0" step="0.1"
 	       name="artist_min_hotttnesss" placeholder="min"/>
 	<input type="number" size="4" min="0.0" max="1.0" step="0.1"
-	       name="artist_max_hotttnesss" placeholder="max"/>
+	       name="artist_max_hotttnesss" placeholder="max"/><br/>
 	<label>longitude:</label>
 	<input type="number" size="4" min="-180.0" max="180.0" step="10"
 	       name="artist_min_longitude" placeholder="min"/>
 	<input type="number" size="4" min="-180.0" max="180.0" step="10"
-	       name="artist_max_longitude" placeholder="max"/>
+	       name="artist_max_longitude" placeholder="max"/><br/>
 	<label>latitude:</label>
 	<input type="number" size="4" min="-00.0" max="90.0" step="10"
 	       name="artist_min_latitude" placeholder="min"/>
 	<input type="number" size="4" min="-90.0" max="90.0" step="10"
-	       name="artist_max_latitude" placeholder="max"/>
+	       name="artist_max_latitude" placeholder="max"/><br/>
       </fieldset>
       <fieldset>
 	<legend>song attributes</legend>
-      <label>tempo:</label>
-      <input type="number" size="3" min="0" max="500" 
-	     name="min_tempo" value="" placeholder="min"/>
-      <input type="number" size="3" min="0" max="500"
-	     name="max_tempo" value="" placeholder="max"/><br/>
-      <label>song key:</label>
+      <label>key:</label>
       <select name="key">
 	<option value="">any key</option>
         <option value="0">c</option>
@@ -120,13 +113,19 @@
         <option value="9">a</option>
         <option value="10">b-flat</option>
         <option value="11">b</option>
-       </select><br/>
+      </select><br/>
       <label>mode</label>
       <select name="mode">
 	<option value="">any mode</option>
 	<option value="0">minor</option>
 	<option value="1">major</option>
       </select><br/>
+      <label>tempo:</label>
+      <input type="number" size="4" min="0" max="500" 
+	     name="min_tempo" value="" placeholder="min"/>
+      <input type="number" size="4" min="0" max="500"
+	     name="max_tempo" value="" placeholder="max"/><br/>
+
       <label>duration:</label>
       <input type="number" min="0.0" max="3600.0" 
 	     name="min_duration" placeholder="min (sec)" size="4"/>
@@ -159,6 +158,7 @@
       </fieldset>
        <input type="submit" value="create playlist"/>
     </form>
+      <p id="err-text"></p>
   </div>
   </div>
     </div>
