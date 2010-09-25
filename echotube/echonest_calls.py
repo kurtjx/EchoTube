@@ -14,7 +14,6 @@ class EchonestAPIException(Exception):
 def playlist_description(descriptions=[], artists=[], params=None):
     params.update({'api_key':ECHO_NEST_API_KEY,
               'format':'json',
-              'type':'artist-radio',
              })
     for k,v in params.items():
         if isinstance(v, unicode):

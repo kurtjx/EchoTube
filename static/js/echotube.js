@@ -8,7 +8,7 @@ var playlists = [{title: "kurtjx's picks",
 $(document).ready(
   function(){
     $("#pl-desc").hide();
-    $("input[name=description]").attr('value','').hide();
+    $("input[name=description]").attr('value','');
     $("#form-text").html('Use this form to create a new playlist');
     $("#new_playlist_form").submit(function(){
 				     $(this).ajaxSubmit({
@@ -21,17 +21,23 @@ $(document).ready(
     $("select#pl-type").change(function(){
 				 if($("#new_playlist_form select[name=type]").val()=="artist-description"){
 				   $("#pl-artist").hide();
-				   $("input[name=artist]").attr('value','').hide();
+				   $("input[name=artist]").attr('value','');
 				   $("#pl-desc").show();
-				   $("input[name=description]").show();
 				 }
 				 else{
 				   $("#pl-desc").hide();
-				   $("input[name=description]").attr('value','').hide();
+				   $("input[name=description]").attr('value','');
 				   $("#pl-artist").show();
-				   $("input[name=artist]").show();
 				 }
 			       });
+
+    // add artist / desc stuff
+    $("#add-artist").click(function(){
+			     $("#pl-artist").append('<label>artist:</label><input id="pl-artist" type="text" name="artist" value="" size="17" placeholder="seed artist for playlist"><br/>');
+			   });
+    $("#add-desc").click(function(){
+			   $("#pl-desc").append('<label>description:</label><input id="pl-desc" type="text" name="description" value="" size="17" placeholder="tags to make a playlist"/><br/>');
+			 });
   });
 
 function resetPlayer(response) {

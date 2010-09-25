@@ -58,15 +58,21 @@
 	  <option value="artist">only this artist</option>
 	  <option value="artist-description">artists' description</option>
 	</select><br/>
-	<label id="pl-artist">artist:</label>
-	<input id="pl-artist" type="text" 
-	       name="artist" value="" 
-	       placeholder="seed artist for playlist">
+	<div id="pl-artist">
+	  <label>artist:</label>
+	  <input id="pl-artist" type="text" 
+		 name="artist" value="" size="17"
+		 placeholder="seed artist for playlist">
+	    <span id="add-artist" class="ui-icon ui-icon-plus ui-helper-reset"></span>
+	    <br/>
+	</div>
+	<div id="pl-desc">
+	  <label>description:</label>
+	  <input id="pl-desc" type="text"  size="17"
+		 name="description" value="" placeholder="tags to make a playlist"/>
+	  <span id="add-desc" class="ui-icon ui-icon-plus ui-helper-reset"></span>
 	  <br/>
-	<label id="pl-desc">description:</label>
-	<input id="pl-desc" type="text" 
-	       name="description" value="" placeholder="tags to make a playlist"/>
-	<br/>
+	</div>
       </fieldset>
       <fieldset id="outer-field">
 	<legend>path</legend>
@@ -130,8 +136,7 @@
       <input type="number" min="0.0" max="3600.0" 
 	     name="min_duration" placeholder="min (sec)" size="4"/>
       <input type="number" min="0.0" max="3600.0" 
-	     name="max_duration" placeholder="max (sec)" size="4"/>
-      <br/>
+	     name="max_duration" placeholder="max (sec)" size="4"/><br/>
       <label>loudness:</label>
       <input type="number" min="-100.0" max="100.0" name="min_loudness" placeholder="min (db)" size="4"/>
       <input type="number" min="-100.0" max="100.0" name="max_loudness" placeholder="max (db)" size="4"/>
@@ -156,7 +161,7 @@
 	<input type="checkbox" name="term" value="official"/><span id="checkbox">official</span>
 	<input type="checkbox" name="term" value="video"/><span id="checkbox">video</span><br/>
       </fieldset>
-       <input type="submit" value="create playlist"/>
+       <input id="submit" type="submit" value="create playlist"/>
     </form>
       <p id="err-text"></p>
   </div>

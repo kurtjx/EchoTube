@@ -27,6 +27,7 @@ def api(request):
                 params.update({key:value})
         try:
             enjson = echonest.playlist_description(descriptions, artists, params)
+            if len(enjson)==0: raise echonest.EchonestAPIException('zero songs found')
         except echonest.EchonestAPIException, e:
             return HttpResponse(dumps({'success':False,
                                        'message': e.value})
