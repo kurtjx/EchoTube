@@ -4,6 +4,7 @@ import urllib2
 import youtube_calls
 
 queue = Queue.Queue()
+output = {}
 
 class ThreadTube(threading.Thread):
     '''make threaded calls to Youtube'''
