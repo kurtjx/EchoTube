@@ -13,8 +13,8 @@ class EchonestAPIException(Exception):
 
 def playlist_description(descriptions=[], artists=[], params=None):
     params.update({'api_key':ECHO_NEST_API_KEY,
-              'format':'json',
-             })
+                   'format':'json',
+                   })
     for k,v in params.items():
         if isinstance(v, unicode):
             params[k] = v.encode('utf-8')
@@ -27,7 +27,7 @@ def playlist_description(descriptions=[], artists=[], params=None):
     if settings.DEBUG: print url
     f = urllib.urlopen(url)
     response = simplejson.loads(f.read())['response']
-    if settings.DEBUG: print response
+    #if settings.DEBUG: print response
     if response['status']['code'] == 0:
         return response['songs']
     else:

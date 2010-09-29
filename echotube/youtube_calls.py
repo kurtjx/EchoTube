@@ -15,8 +15,10 @@ def search(query_text):
     service = gdata.youtube.service.YouTubeService()
     query = gdata.youtube.service.YouTubeVideoQuery()
     query.categories.append("Music")
-    query.racy = "exclude"
+    query.racy = "include"
     query.vq = name
+    query.max_results = 3 
+    query.format = '5'  # only embedable videos
     feed = service.YouTubeQuery(query)
     results = []
     for video in feed.entry:
