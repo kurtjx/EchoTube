@@ -32,11 +32,13 @@ def api(request):
         for key,value in request.GET.items():
             if key != 'description' and key != 'artist' and key!='term' and value !='':
                 params.update({key:value})
-        start = time.time()
+        if settings.DEBUG: start = time.time()
         try:
             enjson = echonest.playlist_description(descriptions, artists, params)
-            if settings.DEBUG: print "echonest call time: %s" % (time.time()-start)
-            if len(enjson)==0: raise echonest.EchonestAPIException('zero songs found')
+            if settings.DEBUG:
+                print "echonest call time: %s" % (time.time()-start)
+            if len(enjson)==0:
+                raise echonest.EchonestAPIException('zero songs found')
         except echonest.EchonestAPIException, e:
             return HttpResponse(dumps({'success':False,
                                        'message': e.value})
@@ -44,13 +46,13 @@ def api(request):
         else:
             pljson =  {'title': title , 'videos':[] }
             query_list = []
-            start = time.time()
+            if settings.DEBUG: start = time.time()
             for song in enjson:
                 query_text = song['artist_name']
                 query_text += ' ' + song['title']
                 for term in terms: query_text += ' ' + term
-                if settings.DEBUG: print "searching: "+ query_text + ' type: '+ str(type(query_text))
-                if THREADED: query_list.append(query_text)
+                if THREADED:
+                    query_list.append(query_text)
                 else:
                     feed = youtube.search(query_text)
                     if len(feed)>0:
