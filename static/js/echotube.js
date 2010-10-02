@@ -5,6 +5,7 @@ $(document).ready(
     $("input[name=description]").attr('value','');
     $("#form-text").html('Use this form to create a new playlist');
     $("#player-playlists").remove();
+    
     $("#new_playlist_form").submit(function(){
 				     $(this).ajaxSubmit({
 						     beforeSubmit: waiting,
