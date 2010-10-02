@@ -5,7 +5,7 @@ class Playlist(models.Model):
     title = models.CharField(max_length=150)
     date = models.DateTimeField('date created')
     ip = models.IPAddressField()
-    request = models.CharField(max_length=100)
+    request = models.CharField(max_length=32)
 
     def __unicode__(self):
         return self.title
