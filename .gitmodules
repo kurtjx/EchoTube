@@ -1,0 +1,3 @@
+[submodule "static/player"]
+	path = static/player
+	url = git://github.com/badsyntax/jquery-youtube-player.git

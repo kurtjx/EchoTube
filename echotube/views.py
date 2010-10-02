@@ -1,7 +1,10 @@
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse
 from django.conf import settings
+from EchoTube.echotube.models import Playlist, Video
 from simplejson import dumps
+from datetime import datetime
+from hashlib import md5
 
 THREADED = True
 
@@ -14,11 +17,26 @@ else:
 if settings.DEBUG: import time
 
 
+
 def api(request):
     if request.GET:
         descriptions = request.GET.getlist('description')
         artists = request.GET.getlist('artist')
         terms = request.GET.getlist('term')
+        ip = request.META['REMOTE_ADDR']
+
+        # check if we've seen these exact GET params
+        print request.GET
+        rhash = md5(str(request.GET)).hexdigest()
+        print rhash
+        try:
+            pl = Playlist.objects.get(request__exact=rhash)
+            pljson = make_playlist_json(pl)
+            if settings.DEBUG: print "returning playlist from DB"
+            return HttpResponse(dumps({'success':True, 'playlist':pljson}), 'application/javascript')
+        except Playlist.DoesNotExist:
+            pass
+            
         
         if len(descriptions)>0 and descriptions[0]!='':
             title = descriptions[0]
@@ -44,9 +62,16 @@ def api(request):
                                        'message': e.value})
                                 )
         else:
-            pljson =  {'title': title , 'videos':[] }
+            playlist = Playlist(title = title,
+                                date = datetime.now(),
+                                ip = ip,
+                                request = rhash
+                                )
+            playlist.save()
+            pljson =  {'title': title , 'videos':[] , 'uri':'/playlist/'+str(playlist.pk)}
             query_list = []
             if settings.DEBUG: start = time.time()
+            idx = 0
             for song in enjson:
                 query_text = song['artist_name']
                 query_text += ' ' + song['title']
@@ -58,6 +83,12 @@ def api(request):
                     if len(feed)>0:
                         pljson['videos'].append({'id': feed[0]['id'],
                                                  'title':feed[0]['title']})
+                        video = Video(playlist = playlist,
+                                      youtube_id = feed[0]['id'],
+                                      title = feed[0]['title'],
+                                      idx = idx)
+                        video.save()
+                        idx+=1
             # threaded youtube calls to get feeds
             if THREADED:
                 feeds = youtube.search(query_list)
@@ -65,8 +96,32 @@ def api(request):
                     if len(feed)>0:
                         pljson['videos'].append({'id': feed[0]['id'],
                                                  'title':feed[0]['title']})
+                        video = Video(playlist = playlist,
+                                      youtube_id = feed[0]['id'],
+                                      title = feed[0]['title'],
+                                      idx = idx)
+                        video.save()
+                        idx+=1
             if settings.DEBUG: print "elapsed time for youtube: %s" % (time.time() - start)
             return HttpResponse(dumps({'success':True, 'playlist':pljson}),
                                 'application/javascript')
     else:
         return HttpResponse('no data')    
+
+def playlist(request, pk):
+    # django shortcut to get playlist from db
+    pl = get_object_or_404(Playlist, pk=pk)
+    pljson = make_playlist_json(pl)
+    return render_to_response('playlist.html',{'playlist':dumps(pljson),
+                                               'debug': settings.DEBUG,
+                                               'title': pl.title})
+    
+def make_playlist_json(pl):
+    vids = Video.objects.filter(playlist=pl).order_by('idx')
+    pljson = {'title': pl.title, 'videos':[], 'uri': '/playlist/'+str(pl.pk)}
+    for vid in vids:
+        pljson['videos'].append({'id': vid.youtube_id,
+                         'title':vid.title,
+                         })
+    return pljson
+    

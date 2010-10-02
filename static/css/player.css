@@ -164,7 +164,7 @@ label {
     display: block
 }
 
-#submit input { margin-left: 4.5em; margin-top: 1em;} 
+#submit { margin: 1.5em 0.2em 0.5em 15em;} 
 input{ border: 1px solid #282828; margin: 0.1em; background: #E8E8E8; }
 
 fieldset

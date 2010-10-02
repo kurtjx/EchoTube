@@ -1,15 +1,10 @@
-var playlists = [{title: "kurtjx's picks",
-		  videos: [
-		    { id: 'EI6iZJOntY8', title: 'Lupe Fiasco - Hurt Me Soul' },
-		    { id: 'FDVzaTMF-ps', title: "Alexander O'neal & Cherelle - Saturday luv"}
-		    ]
-		 }];
 
 $(document).ready(
   function(){
     $("#pl-desc").hide();
     $("input[name=description]").attr('value','');
     $("#form-text").html('Use this form to create a new playlist');
+    $("#player-playlists").remove();
     $("#new_playlist_form").submit(function(){
 				     $(this).ajaxSubmit({
 						     beforeSubmit: waiting,
@@ -44,11 +39,12 @@ function resetPlayer(response) {
   $('input').removeAttr("disabled");
   $('select').removeAttr("disabled");
   if(response.success){
-
+    //console.log(response.playlist.uri);
+    window.location.replace(response.playlist.uri);
     playlists.unshift(response.playlist);
     //console.log(playlists);
 
-    $("#err-text").html('');
+    /*$("#err-text").html('');
     // fix youtube player bug
     $("#player-playlists").remove();
     // clear old player
@@ -58,7 +54,7 @@ function resetPlayer(response) {
 			playlists: playlists,
 			updateHash: 0,
 			repeat: 1
-		      });
+		      });*/
   }
   else{
     $("#err-text").html('<span id="error">' + response.message + '</span>');
@@ -71,6 +67,6 @@ function waiting(){
   //$('input[type=submit]').attr('disabled', 'disabled');
   $('input').attr('disabled', 'disabled');
   $('select').attr('disabled','disabled');
-  $("#err-text").html('creating playlist, plz be patient <img src="img/player_spinner.gif" alt="waiting"/>');
+  $("#err-text").html('creating playlist, plz be patient <img src="/img/player_spinner.gif" alt="waiting"/>');
   return true;
 }

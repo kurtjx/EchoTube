@@ -20,5 +20,6 @@ urlpatterns = patterns('',
     (r'^s/(?P<path>.*)$', 'django.views.static.serve',
      {'document_root':os.path.join(settings.PROJECT_PATH, 'static')}),
     (r'^api/', 'EchoTube.echotube.views.api'),
+    (r'^playlist/(?P<pk>\d+)$', 'EchoTube.echotube.views.playlist'),
     
 )
