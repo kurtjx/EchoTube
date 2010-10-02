@@ -26,9 +26,7 @@ def api(request):
         ip = request.META['REMOTE_ADDR']
 
         # check if we've seen these exact GET params
-        print request.GET
         rhash = md5(str(request.GET)).hexdigest()
-        print rhash
         try:
             pl = Playlist.objects.get(request__exact=rhash)
             pljson = make_playlist_json(pl)
@@ -102,6 +100,10 @@ def api(request):
                                       idx = idx)
                         video.save()
                         idx+=1
+            if len(pljson['videos'])==0:
+                playlist.delete()
+                return HttpResponse(dumps({'success':False, 'message':'search failed'}),
+                                'application/javascript')
             if settings.DEBUG: print "elapsed time for youtube: %s" % (time.time() - start)
             return HttpResponse(dumps({'success':True, 'playlist':pljson}),
                                 'application/javascript')
