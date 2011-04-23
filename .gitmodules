@@ -1,0 +1,3 @@
+[submodule "youtube-player"]
+	path = youtube-player
+	url = https://github.com/badsyntax/jquery-youtube-player.git
