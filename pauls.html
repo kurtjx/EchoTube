@@ -1,0 +1,1832 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+ <title> Playlist Playground</title> 
+  <link  type="text/css" href="css/ui-lightness/jquery-ui-1.8.5.custom.css" rel="stylesheet" />	
+  <script type="text/javascript" src="js/jquery-1.4.2.min.js"></script> 
+  <script type="text/javascript" src="js/jquery-ui-1.8.5.custom.min.js"></script> 
+  <link rel="stylesheet" href="lib/style.css"/> 
+ 
+    <style type="text/css" title="currentStyle"> 
+            @import "release-datatables/media/css/demo_page.css";
+            @import "release-datatables/media/css/demo_table.css";
+    </style> 
+<style type="text/css"> 
+.percent-bar {
+    display: inline-block;
+    width: 60px;
+    text-align: left;
+    border: 1px solid #888;
+    background: #eee;
+}
+ 
+.percent-bar span {
+    display: block;
+    height: 4px;
+    background: #aaa;
+}
+</style> 
+ 
+<script type="text/javascript" src="release-datatables/media/js/jquery.dataTables.js"></script> 
+<script type="text/javascript" src="js/soundmanager2-nodebug-jsmin.js"></script> 
+ 
+<script type="text/javascript"> 
+ 
+// This is a playlisting playground application that allows
+// a user to experiment with various aspects of the Echo Nest
+// playlist APIs.  This app uses JSONP to get data directly
+// from the Echo Nest APIs, no special backend server is 
+// required.
+ 
+// Jquery munging to make everything look nice.
+// we have tables, we have tab menus
+ 
+function generatePercentBarHtml(percent) {
+    return '<span class="percent-bar"><span style="width: ' + percent + '%"></span></span>';
+}
+ 
+var PERCENT_BAR_COLUMNS = [
+    {col: 4, field: 'artist_hotttnesss'},
+    {col: 5, field: 'artist_familiarity'},
+    {col: 6, field: 'song_hotttnesss'},
+    {col: 8, field: 'energy', audio_summary: true},
+    {col: 9, field: 'danceability', audio_summary: true}
+];
+ 
+function rowCallback(nRow, aData, iDisplayIndex ) {
+    var row = $('#future_tracks').dataTable().fnGetPosition(nRow);
+    var song;
+    if (row != 0 && !row) {
+        row = $('#tracklist').dataTable().fnGetPosition(nRow);
+        song = pastTracks[row];
+    }
+    else {
+        song = futureTracks[row];
+    }
+    PERCENT_BAR_COLUMNS.forEach(function (col) {
+        var percent = PC((col.audio_summary ? song.audio_summary : song)[col.field]);
+        var cell = $('td:eq(' + col.col + ')', nRow);
+        var cellValue = cell.text();
+        cell.empty().html(cellValue.replace(/\d/g, '') + generatePercentBarHtml(percent));
+    });
+    $(nRow).click(function () {
+	showTrackDetails(song);
+    });
+    return nRow;
+}
+ 
+ $(document).ready(function() {
+    // setup some configs for the table
+ 
+        // This is the full track history table.
+        $('#tracklist').dataTable(
+            {       "bPaginate": false,
+                    "bLengthChange": true,
+                    "bJQueryUI": true,
+                    "bFilter": false,
+                    "bSort": false,
+                    "bInfo": false,
+                    "iDisplayLength": -1,
+                    //"aLengthMenu": [[10, 25, 50, -1], [ 10, 25, 50, "All"]],
+                    //"sScrollY": 400,
+                    "bAutoWidth": false, 
+                    "fnRowCallback": rowCallback});
+ 
+        // This is the lookahead table
+ 
+        $('#future_tracks').dataTable(
+            {       "bPaginate": false,
+                    "bLengthChange": false,
+                    "bJQueryUI": true,
+                    "bFilter": false,
+                    "bSort": false,
+                    "bInfo": false,
+                    "iDisplayLength": 5,
+                    //"sScrollY": 400,
+                    "bAutoWidth": false,
+                    "fnRowCallback": rowCallback }
+        );
+ 
+        $(function() {
+            $("#tabs").tabs();
+        });
+    
+        // this setting affects how array params are sent via getJSON calls
+        jQuery.ajaxSettings.traditional = true;  
+        clearSession();
+ 
+        // the session info is for a dialog, so detach it from the main dom
+        // and make a dialog out of it.
+        si = $("#session_info");
+        si.detach();
+        si.dialog( {autoOpen: false, minWidth:600, title: "Playlist session info"});
+ 
+        trackDetails = $("#track_details");
+        trackDetails.detach();
+        trackDetails.dialog( {autoOpen: false, minWidth:400, minHeight:220, title: "Track info"});
+        
+ 
+        // here's the config panel
+        configPanel = $('#config_panel');
+        configPanel.detach();
+        configPanel.dialog( {autoOpen: false, title: "Debug configuration", minWidth:400});
+ 
+        // here's the next 10  panel
+        next10Dialog = $('#next10_dialog');
+        next10Dialog.detach();
+        next10Dialog.dialog( {autoOpen: false, modal : true, title: "Advancing ...", minWidth:400});
+ 
+        // here's the complain panel
+        complainDialog = $('#complain');
+        complainDialog.detach();
+        complainDialog.dialog( {autoOpen: false, modal : true, title: "Send feedback", minWidth:400});
+ 
+        simulateTimeClicked();
+ 
+        String.prototype.startsWith = function(str){
+            return (this.indexOf(str) === 0);
+        }
+ 
+       String.prototype.trim = function() {
+            return String(this).replace(/^\s+|\s+$/g, '');
+       };
+ 
+        soundManager.url = 'js/';
+        soundManager.flashVersion = 9;
+        soundManager.debugMode=true;
+ 
+        soundManager.onload = function() {
+             //info("sound manager ready");
+        };
+ 
+        soundManager.onerror = function() {
+            error("sound manager broken");
+        }
+ 
+ });
+ 
+ 
+ 
+// some configuration vars
+var host = "bleeding-edge.ccr.partner.echonest.com"
+var catalog = "ccr"
+var useAcoustic = true;
+ 
+//host = "localhost:8080"
+//catalog = "7digital";
+ 
+// this is work-in-progress as we enhance support for
+// catalog radio, some of this will change.
+ 
+var stations = {
+    WHTZ: { song_catalog: "CARROGC12C32A8BA70" },
+    KKRW: { song_catalog: "CACPYYW12C3295D0BD" },
+    KBCO: { song_catalog: "CAMUANU12C32BA3A55" },
+    KEXP: { song_catalog: "CAOUIZO12C3650722A" },
+    WFMU: { song_catalog: "CAOAVHR12C366AEFE0" }
+}
+ 
+var clientVersion = "1.1";
+var logging = false;        // if true, we log messages to the console
+                            // set logging to false before deploying
+var debugging = false;      // debugging mode
+ 
+// some state vars
+ 
+var sessionID = null;       // the current session
+var futureTracks;
+var pastTracks;
+var curTrack = 0;           // the current track number
+var curSong = null;         // the current song in the session
+var audio = null;           // the audio player
+var advanceTrack = -1;       // used for playing multiple tracks
+ 
+var timeline = 0;           // current or simulated time
+var lastTime;               // manages timeline
+var deltaTime = 0;          // time to advance (or -1 for realtime)
+var sessionSeed = "";       //
+ 
+// rating info 
+var star1 = '&#10029;'
+var star2 = star1 + star1;
+var star3 = star2 + star1;
+var star4 = star3 + star1;
+var star5 = star4 + star1;
+var ratings = [ '', star1, star2, star3, star4, star5];
+ 
+var banned = '&Oslash;';
+ 
+var steering = {
+    no_change:  {factor:-1,     symbol:' '},
+    like_this:  {factor:1.0,    symbol:'&harr;'},
+    more:       {factor:1.2,    symbol:'&uarr;'},
+    less:       {factor:.8,     symbol:'&darr;'},
+    way_more:   {factor:1.5,    symbol:'&uarr;'},
+    way_less:   {factor:.5,     symbol:'&darr;'},
+    dont_care:  {factor: 0,     symbol:'&loz;'},
+    term_more:  {factor:1.5,      symbol:'&uarr;'},
+    term_ban:   {factor:-1,      symbol: banned},
+    term_require: {factor:-1,      symbol:'&diams;'},
+ 
+    // loudness factors are reversed, since loudness is always negative
+    loudness_more:       {factor:0.8,    symbol:'&uarr;'},
+    loudness_less:       {factor:1.2,     symbol:'&darr;'},
+    loudness_way_more:   {factor:0.5,    symbol:'&uarr;'},
+    loudness_way_less:   {factor:1.5,     symbol:'&darr;'},
+}
+    
+ 
+// clears all of the session info
+function clearSession() {
+    sessionID = null;
+    curTrack = 0;
+    curSong = null;
+    audioCleanup();
+    timeline = 0;
+    lastTime = getTime();
+    deltaTime = 0;
+    advanceTrack = -1;
+    sessionSeed = "";
+    $("#session_data").hide();
+    $("#future_tracks").dataTable().fnClearTable();
+    $("#tracklist").dataTable().fnClearTable();
+    pastTracks = [];
+}
+ 
+// we maintain a timeline that works with
+// realtime or simulated time.
+function advanceTime() {
+    if (deltaTime == -1) {
+        var delta =  getTime() - lastTime;
+        timeline += delta;
+    } else {
+        timeline += deltaTime;
+    }
+    lastTime = getTime();
+}
+ 
+// manages the timing for the next song.
+//   if time is -1, it is realtime, otherwise
+//   time is number of seconds to play the next
+//   song
+ 
+function manageSongTiming(time) {
+    if (isSimTime()) {
+        if (time < 0) {
+            deltaTime = curSong.audio_summary.duration;
+        } else {
+            deltaTime = time;
+        }
+    } else {
+        deltaTime = -1;
+    }
+}
+ 
+// Displays the session divs in the dom
+function showSession() {
+    $("#session_data").show();
+}
+ 
+ 
+ 
+// Updates all of the data associated with a 
+// new song
+function setNowPlaying(song) {
+    showSession();
+ 
+    if (curSong != null) {
+        pastTracks.push(curSong);
+        $("#tracklist").dataTable().fnAddData(getHistorySongRow(curSong.which, curSong));
+    }
+ 
+    clearSteeringOptions();
+ 
+    curSong = song;
+    song.which = ++curTrack;
+ 
+    if (curTrack >= advanceTrack) {
+        addPlayer(song);
+        addCoverArt(song)
+ 
+        // fetchSpotifyUrl(song);
+ 
+        $("#np_title").empty();
+        $("#np_artist").empty();
+        $("#np_artist").append(song.artist_name);
+        $("#np_title").append(song.title);
+ 
+        $("#np_artist_hotttnesss").empty();
+        $("#np_artist_hotttnesss").append(generatePercentBarHtml(PC(song.artist_hotttnesss)));
+        $("#np_artist_familiarity").empty();
+        $("#np_artist_familiarity").append(generatePercentBarHtml(PC(song.artist_familiarity)));
+        $("#np_song_hotttnesss").empty();
+        $("#np_song_hotttnesss").append(generatePercentBarHtml(PC(song.song_hotttnesss)));
+ 
+        $("#np_duration").empty();
+        $("#np_duration").append(ftime(song.audio_summary.duration));
+        $("#np_start_time").empty();
+        $("#np_start_time").append(ftime(song.startTime));
+        $("#np_time").empty();
+ 
+        $("#np_tempo").empty();
+        $("#np_tempo").append(Math.round(song.audio_summary.tempo));
+        $("#np_loudness").empty();
+        $("#np_loudness").append(Math.round(song.audio_summary.loudness));
+        $("#np_energy").empty();
+        $("#np_energy").append(generatePercentBarHtml(PC(song.audio_summary.energy)));
+        $("#np_danceability").empty();
+        $("#np_danceability").append(generatePercentBarHtml(PC(song.audio_summary.danceability)));
+    }
+}
+ 
+// adds a spotify link (not currently used)
+function addSpotifyPlayer(url) {
+    if (url != null) {
+        $("#spotify").empty();
+        $("#spotify").append("<a id='spotify' href='" + url + "'> Open in Spotify </a>");
+    }
+}
+ 
+// Uses the spotify metadata search api to find an audio link
+function fetchSpotifyUrl(song) {
+    $("#spotify").empty();
+      $.getJSON("http://ws.spotify.com/search/1/track.json?q=artist:" 
+            + encodeURIComponent(song.artist_name) + " title:" + encodeURIComponent(song.title), function(data){
+        if (typeof data.info === "undefined" || data.info.num_results === 0) {
+        } else {
+            addSpotifyPlayer(data.tracks[0].href);
+        }
+      });
+}
+ 
+ 
+// creates the email feedback form for Q/A
+function complain() {
+    var recipient = "mark@echonest.com,paul@echonest.com";
+    var subject = "Playlist feedback";
+    var br = "\r";
+    var brbr = br + br;
+    var si_link = "http://" + host + "/api/v4/playlist/session_info" + json_params + "&session_id=" + sessionID;
+    var body = "Detailed Problem Description:" + brbr + brbr;
+ 
+    body += "Session: " + sessionID + br;
+    body += "Current song id: " + curSong.id + br;
+    body += "Current song title: " + escape(curSong.title) + br;
+    body += "Client Version: " + clientVersion + br;
+    body += "Link to session info: " +  brbr + si_link + br;
+    var link = "<a href='mailto:"+recipient+"?subject="+subject+"&body="+encodeURIComponent(body) + "'> send feedback</a>";
+    fset("#complaint-email", link);
+    complainDialog.dialog('open');
+}
+ 
+// Performs basic error checking on the return response from the JSONP call
+function checkResponse(data) {
+    if (data.response) {
+        if (data.response.status.code != 0) {
+            error("Whoops... Unexpected error from server. " + data.response.status.message);
+            log(JSON.stringify(data.response));
+        } else {
+            return true;
+        }
+    } else {
+        error("Unexpected response from server");
+    }
+    return false;
+}
+ 
+// Shows an error message
+function error(msg) {
+    info_message(msg, "error_style");
+}
+ 
+// shows an info message
+function info(msg) {
+    info_message(msg, "info_style");
+}
+ 
+// shows a message for a few seconds, the
+// deletes it
+function temp_info(msg, secs) {
+    if (!secs) {
+        secs = 5;
+    }
+    setTimeout('clearInfo()', secs * 1000);
+    info_message(msg, "info_style");
+}
+ 
+// shows a debug mesasge
+function debug(msg) {
+    if (debugging) {
+        warn(msg);
+    }
+}
+ 
+// baseline styled message 
+function info_message(msg, style) {
+    clearInfo();
+    $("#info_list").append('<span class="' + style + '">' +  msg + '</span>');
+}
+ 
+// clear any messages
+function clearInfo() {
+    $("#info_list").empty();
+}
+ 
+// shows a warning message
+function warn(msg) {
+    info_message(msg, "warn_style");
+}
+ 
+// shows a log message
+function log(msg) {
+    if (logging) {
+        console.log(msg);
+    }
+}
+ 
+ 
+// gets the audio for the song
+function getMp3(song) {
+    var track = getTrack(song);
+    var specialCase = false;
+ 
+    if (track != null) {
+        if (track.audio) {
+            return transformAudioUrl(track.audio); 
+        } else {
+            return track.preview_url;
+        }
+    } else {
+        return null;
+    }
+}
+ 
+function transformAudioUrl(audio) {
+  // https://ccr-audio.s3.amazonaws.com/songs1/2641601.wav?Signature=nvhTFMvoMorwRODXvYrrIuzIZtY%3D&Expires=1290037465&AWSAccessKeyId=AKIAIAFEHLM3KJ2XMHRA
+  //http://ccr-audio.s3.amazonaws.com/file.wav to 
+  //http://ccr-audio-mp3.s3.amazonaws.com/file.wav.mp3 
+ 
+   if (audio.startsWith("https://ccr-audio.s3.amazonaws.com")) {
+         sigIndex = audio.indexOf('?Signature');
+         if (sigIndex >= 0) {
+             audio = audio.substring(0, sigIndex);
+             audio = audio.replace('https', 'http');
+             audio = audio.replace(':443', '');
+             audio = audio.replace('ccr-audio', 'ccr-audio-mp3');
+             audio = audio.replace('wav', 'wav.mp3');
+         }
+   } 
+   return audio;
+}
+ 
+ 
+// Gets the coverart for a song
+function getCoverArt(song) {
+    var track = getTrack(song);
+    if (track != null) {
+        return track.release_image;
+    } else {
+        return null;
+    }
+}
+ 
+ 
+// gets the track for a song
+function getTrack(song) {
+    if (song.tracks.length > 0) {
+        return song.tracks[0]
+    } else {
+        return null;
+    }
+}
+ 
+function audioEnded() {
+    if (isAutoAdvance()) {
+        nextSong(-1);
+    }
+}
+ 
+// Adds a player with the given song
+function addPlayer(song) {
+    var mp3 = getMp3(song);
+    debug("mp3 is " + mp3);
+    if (mp3 != null) {
+        audioCleanup();               // stop the previous play
+        log("Playing " + mp3);
+        audio = soundManager.createSound({
+            id: 'sound',
+            url: mp3,
+            onfinish: audioEnded,
+            whileplaying:audioUpdated
+        });
+        $("#pbuttons").show();
+        if (isAutoPlay()) {
+            audio.play();
+        }
+    } else {
+        // if we don't have any music and we
+        // are in auto advance mode, then advance to the
+        // next song
+ 
+        if (isAutoAdvance()) {
+            nextSong(-1);
+        } else {
+            $("#pbuttons").hide();
+        }
+    }
+}
+ 
+function audioPlay() {
+    if (audio) {
+        if (audio.paused) {
+            audio.resume();
+        } else if (audio.playState == 0) {
+            audio.play();
+        }
+    }
+}
+ 
+function audioCleanup() {
+    if (audio) {
+        audio.pause();
+        audio.destruct();
+        audio = null;
+    }
+}
+ 
+function audioPause() {
+    if (audio) {
+        audio.pause();
+    }
+}
+ 
+ 
+function isAutoAdvance() {
+    return ($('#auto_advance').attr('checked') == true); 
+}
+ 
+function isAutoPlay() {
+    var autoPlay = ($('#auto_play').attr('checked') == true) && curTrack >= advanceTrack;
+    return autoPlay;
+}
+ 
+function isSimTime() {
+    return ($('#sim_time').attr('checked') == true) || curTrack < advanceTrack;
+}
+ 
+function simulateTimeClicked() {
+    if ($('#sim_time').attr('checked') == true) {
+        $("#skip_button").attr('disabled', false);
+    } else {
+        $("#skip_button").attr('disabled', true);
+    }
+}
+ 
+function getVariety() {
+    var val  = $("#variety").val();
+    return val;
+}
+ 
+function getTaste() {
+    var val  = $("#taste").val();
+    return val;
+}
+ 
+function addCoverArt(song) {
+    var coverart = getCoverArt(song);
+    $("#coverart").empty();
+    if (coverart == null) {
+        fetchCoverArt(song);
+    } else {
+        displayCoverArt(coverart);
+    }
+}
+ 
+ 
+function displayCoverArt(coverart) {
+    if (coverart != null) {
+        $("#coverart").empty();
+        $("#coverart").append( '<img id="image_coverart" src="' + coverart + '">');
+    }
+}
+ 
+ 
+function getFutureSongRow(which, song) {
+    row = [ which, ftime(song.startTime), song.title, song.artist_name, 
+        PC(song.artist_hotttnesss),
+        PC(song.artist_familiarity),
+        PC(song.song_hotttnesss),
+        Math.round(song.audio_summary.tempo), 
+        PC(song.audio_summary.energy),
+        PC(song.audio_summary.danceability),
+        Math.round(song.audio_summary.loudness) +"db"] ;
+    return row;
+}
+ 
+function getHistorySongRow(which, song) {
+    var ratingLabel = "";
+    var rating = $("#rating").val();
+    if (rating > 0) {
+        ratingLabel = ratings[rating] + ' ';
+    }
+ 
+    var bannedArtistLabel = "";
+    if ($('#ban_artist').attr('checked') == true) {
+        bannedArtistLabel = banned + ' ';
+    }
+ 
+    var bannedSongLabel = "";
+    if ($('#ban_song').attr('checked') == true) {
+        bannedSongLabel = banned + ' ';
+    }
+ 
+    row = [ which, 
+        ftime(song.startTime), 
+        bannedSongLabel + ratingLabel + song.title, 
+        bannedArtistLabel + song.artist_name, 
+        PC(song.artist_hotttnesss),
+        PC(song.artist_familiarity),
+        addLabel(PC(song.song_hotttnesss), '#steer_song_hotttnesss'),
+        addLabel(Math.round(song.audio_summary.tempo), '#steer_tempo'),
+        addLabel(PC(song.audio_summary.energy), '#steer_energy'),
+        addLabel(PC(song.audio_summary.danceability), '#steer_dance'),
+        addLabel(Math.round(song.audio_summary.loudness) + 'db ', "#steer_loudness")] ;
+ 
+    term=getSteerTerm();
+    if (term.length > 0) {
+        row.push(  addLabel(term, "#steering_term_weight"));
+    } else {
+        row.push('');
+    }
+    return row;
+}
+ 
+function getSteerTag(name) {
+    var val  = $(name).val();
+    return steering[val].symbol; 
+}
+ 
+function processSongs(songs) {
+    advanceTime();
+    if (songs.length > 0) {
+        fetchSessionTerms();
+        $("#trackfuture").empty()
+        var curTime = getSessionTime();
+        $("#future_tracks").dataTable().fnClearTable();
+        futureTracks = [];
+        for (var i in songs) {
+            var song = songs[i];
+            song.startTime = curTime;
+            if (i == 0) {
+                setNowPlaying(song);
+            } else {
+                if (curTrack >= advanceTrack) {
+                    futureTracks.push(song);
+                    $("#future_tracks").dataTable().fnAddData( getFutureSongRow(i, song, false, '') );
+                }
+            }
+            curTime += song.audio_summary.duration;
+        }
+    } else {
+        info("Can't find any more songs that fit into this playlist.");
+    }
+ 
+    if (songs.length > 0 && curTrack < advanceTrack) {
+        info("auto advancing to track " + (curTrack +1));
+        nextSong(-1);
+    } else if ( (advanceTrack > 0 && songs.length == 0) || curTrack == advanceTrack) {
+        next10Dialog.dialog('close');
+        advanceTrack = 0;
+        clearInfo();
+    }
+}
+ 
+function getSessionTime() {
+    return timeline;
+}
+ 
+function getTime() {
+    var d = new Date();
+    return d.getTime() / 1000.0;
+}
+ 
+function tagUserAction(tag) {
+    /*$("#tracklist").append("<span class='user_tag'>" + tag  + "</span>");*/
+}
+ 
+ 
+function advanceNSongs(n) {
+    next10Dialog.dialog('open');
+    advanceTrack = curTrack + n;
+    nextSong(-1);
+}
+ 
+function nextSong(time) {
+    manageSongTiming(time);
+ 
+    var url ="http://" + host + "/api/v4/playlist/dynamic" +
+        "?api_key=3YDUQHGT9ZVUBFBR0" +
+        "&format=jsonp" +
+        "&lookahead=5" +
+        "&session_id=" + sessionID +
+        "&callback=?" ;
+ 
+    var steeringOptions = getSteeringOptions();
+    tagUserAction("next");
+    if (isSimTime()) {
+        steeringOptions['test_mode'] = time;
+    }
+ 
+    info("Getting next song");
+    $.getJSON(url, steeringOptions, function(data) {
+            clearInfo();
+            if (checkResponse(data)) {
+                processSongs(data.response.songs);
+            } 
+        });
+ 
+}
+ 
+function getSteeringOptions() {
+    var options = {};
+ 
+    var rating = $("#rating").val();
+    if (rating > 0) {
+        options["rating"] = rating;
+    }
+ 
+    if ($('#ban_artist').attr('checked') == true) {
+        addMultiOption(options, "ban", "artist");
+    }
+ 
+    if ($('#ban_song').attr('checked') == true) {
+        addMultiOption(options, "ban", "song");
+    }
+ 
+    addSteer(options, "#steer_tempo", "tempo");
+    addSteer(options, "#steer_dance", "danceability");
+    addSteer(options, "#steer_loudness", "loudness");
+    addSteer(options, "#steer_energy", "energy");
+    addSteer(options, "#steer_song_hotttnesss", "song_hotttnesss");
+ 
+    addSteerDescription(options);
+ 
+    return options;
+}
+ 
+ 
+function addSteer(options, tag, name) {
+    var val  = $(tag).val();
+    if (val != 'no_change') {
+        if (val == 'dont_care') {
+            addMultiOption(options, "steer", "-" + name); 
+        } else {
+            addMultiOption(options, "steer", name + "^" + steering[val].factor); 
+        }
+    }
+}
+ 
+ 
+// Add term steering to the steer options
+ 
+function addSteerDescription(options) {
+    var term = getSteerTerm();
+    var steer = $('#steering_term_weight').val();
+    if (term.length > 0) {
+        var steer = $('#steering_term_weight').val();
+        if (steer == 'term_ban') {
+            options['steer_description'] = "-" + term;
+        } else if (steer == 'term_require') {
+            options['steer_description'] = "^" + term;
+        } else {
+            options['steer_description'] =  term + "^" + steering[steer].factor;
+        }
+    }
+}
+ 
+function getSteerTerm() {
+    var term = "";
+    var steer = $('#steering_term_weight').val();
+    if (steer != 'no_change') {
+        term=$('#steering_predefined_terms').val();
+        if (term == undefined || term == 'custom') {
+            term = $('#steering_term').val();
+        }
+    }
+    return term;
+}
+ 
+function addMultiOption(options, name, value) {
+    if (options[name]) {
+        options[name].push(value);
+    } else {
+        options[name] = [ value ];
+    }
+}
+ 
+function clearSteeringOptions() {
+    $('#ban_artist').attr('checked', false);
+    $('#ban_song').attr('checked', false);
+    $('#rating').val('0');
+ 
+    $('#steer_tempo').val('no_change');
+    $('#steer_dance').val('no_change');
+    $('#steer_song_hotttnesss').val('no_change');
+    $('#steer_energy').val('no_change');
+    $('#steer_loudness').val('no_change');
+    $('#steer_combined').val('no_change');
+ 
+    $('#steering_term_weight').val('no_change');
+    $('#steering_term').val('');
+}
+ 
+ 
+ 
+function audioSkipped() {
+    debug("audio skipped");
+    if (isAutoAdvance()) {
+        nextSong(5);
+    }
+}
+ 
+ 
+function watchdogTimeout() {
+    debug("watchdog FIRED");
+    audioSkipped();
+    temp_info("This song is not playing, skipping to the next song.");
+}
+ 
+var last = 0
+function audioUpdated() {
+    var now = audio.position / 1000;
+    if (now != last) {
+        $("#np_time").empty();
+        $("#np_time").append(ftime(now));
+        last = now;
+    }
+}
+ 
+ 
+ 
+// formats time given in seconds as hh:mm:ss
+ 
+function ftime(secs) {
+    var hours = Math.floor(secs / 3600.0);
+    secs -= hours * 3600;
+    var mins = Math.floor(secs / 60.0);
+    secs -= Math.floor(mins * 60);
+    secs = Math.floor(secs);
+ 
+    var results = "";
+ 
+    if (hours > 0) {
+        results += (hours < 10 ? "0" + hours : hours) + ":"; 
+    }
+ 
+    results +=  (mins < 10 ? "0" + mins : mins) + ":" + (secs  < 10 ? "0" + secs : secs);
+    return results;
+}
+ 
+function setSessionSeedInfo(txt) {
+    sessionSeed = txt;
+}
+ 
+// Turns a value bet 0 and 1 to
+// a percentage
+ 
+function PC(val) {
+    return Math.round(val * 100);
+}
+ 
+function addLabel(val, name) {
+    return getSteerTag(name) + val;
+}
+ 
+ 
+// Creates a new artist playlist
+ 
+var std_params = "?api_key=3YDUQHGT9ZVUBFBR0" +
+        "&format=jsonp" +
+        "&callback=?" ;
+ 
+var json_params = "?api_key=3YDUQHGT9ZVUBFBR0&format=json";
+ 
+var std_playlist_params = std_params + 
+        "&dmca=true" +
+        "&lookahead=5" +
+        "&bucket=audio_summary" +
+        "&bucket=song_hotttnesss" +
+        "&bucket=artist_hotttnesss" +
+        "&bucket=artist_familiarity" +
+        //"&artist_min_familiarity=.0" +
+        "&bucket=tracks" +
+        "&limit=true"; 
+ 
+function fetchArtistPlaylist(artist) {
+    info("Found " + artist.name + ". Creating a playlist of tracks by similar sounding artists.");
+    var url ="http://" + host + "/api/v4/playlist/dynamic" + std_playlist_params;
+    log(url);
+ 
+    var minHotttnesss = Math.min(getTaste(), artist.hotttnesss);
+ 
+    setSessionSeedInfo("Artist playlist with seed artist " + artist.name);
+    $.getJSON(url, {"artist_id":artist.id, 
+                    "bucket" : "id:" + catalog,
+                    "variety" : getVariety(), 
+                    "artist_min_hotttnesss": minHotttnesss,
+                    "type": "artist-radio"}, function(data) {
+            clearInfo();
+            sessionID = data.response.session_id
+            if (checkResponse(data)) {
+                processSongs(data.response.songs);
+            } 
+        });
+}
+ 
+function objLength(obj) {
+    var size = 0;
+    for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            size++;
+        }
+    }
+    return size;
+}
+ 
+function fset(id, val) {
+    $(id).empty();
+    $(id).append(val);
+}
+ 
+function showSessionInfo(info) {
+    // build a song and artist dictionary
+    var artists = {};
+    var songs = {}
+ 
+    for (var i in info.history) {
+        var song = info.history[i];
+        songs[song.id] = song;
+        artists[song.artist_id] = song.artist_name;
+    }
+ 
+    // show general info
+    fset("#gi_session_type", info.playlist_type);
+    fset("#gi_session_seed", sessionSeed);
+    fset("#gi_session_id", sessionID);
+    fset("#gi_host", host);
+    fset("#gi_catalog", catalog);
+ 
+    fset("#gi_artists", objLength(artists));
+    fset("#gi_songs", objLength(songs));
+ 
+    // show rules
+    $("#session_rules").empty();
+    for (var i in info.rules) {
+        var rule = info.rules[i];
+        $("#session_rules").append( "<li>" + rule['rule'] + "</li>");
+    }
+    // show description artists
+    $("#session_description").empty();
+    for (var i in info.description) {
+        var term = info.description[i];
+        $("#session_description").append( "<li>" + term + "</li>");
+    }
+ 
+    // show banned artists
+    $("#session_banned_artists").empty();
+    for (var i in info.banned_artists) {
+        var artist = info.banned_artists[i];
+        $("#session_banned_artists").append( "<li>" + artists[artist] + "</li>");
+    }
+ 
+    // show banned songs
+    $("#session_banned_songs").empty();
+    for (var i in info.banned_songs) {
+        var song = info.banned_songs[i];
+        $("#session_banned_songs").append( "<li>" + song.title + ' by ' + song.artist_name + "</li>");
+    }
+ 
+    // show rated songs
+    $("#session_rated_songs").empty();
+    for (var i in info.rated_songs) {
+        var song = info.rated_songs[i];
+        $("#session_rated_songs").append( "<li>" + ratings[song['rating']] + " " 
+            + song['title'] + " by " + song['artist_name'] + "</li>");
+    }
+ 
+    // show skipped songs
+    $("#session_skipped_songs").empty();
+    for (var i in info.skipped_songs) {
+        var song = info.skipped_songs[i];
+        $("#session_skipped_songs").append( "<li>"  + song['title'] + " by " + song['artist_name'] + "</li>");
+    }
+ 
+    // show top terms 
+    $("#session_top_terms").empty();
+    var maxTerms = 5;
+    for (var i in info.terms) {
+        if (i >= maxTerms) {
+            break;
+        }
+        var term = info.terms[i];
+        $("#session_top_terms").append( "<li>" + term['name'] + "</li>");
+    }
+ 
+   $('.horiz li:nth-child(odd)').addClass('alternate');
+    si.dialog('open');
+}
+ 
+function showTrackDetails(song) {
+    $("#td_artist").text(song.artist_name);
+    $("#td_title").text(song.title);
+ 
+    $("#td_artist_hotttnesss").text(PC(song.artist_hotttnesss));
+    $("#td_artist_familiarity").text(PC(song.artist_familiarity));
+    $("#td_song_hotttnesss").text(PC(song.song_hotttnesss));
+ 
+    $("#td_duration").text(ftime(song.audio_summary.duration));
+    $("#td_start_time").text(ftime(song.startTime));
+ 
+    $("#td_tempo").text(Math.round(song.audio_summary.tempo));
+    $("#td_loudness").text(Math.round(song.audio_summary.loudness));
+    $("#td_energy").text(PC(song.audio_summary.energy));
+    $("#td_danceability").text(PC(song.audio_summary.danceability));
+ 
+    trackDetails.dialog('open');
+}
+ 
+function showConfigDialog() {
+    $("#config_host").val(host);
+    $("#config_catalog").val(catalog);
+    $('#config_acoustic_similars').attr('checked', useAcoustic);
+    configPanel.dialog('open');
+}
+ 
+ 
+function applyNewConfig() {
+    host = $("#config_host").val();
+    catalog = $("#config_catalog").val();
+    useAcoustic = $('#config_acoustic_similars:checked').val() ? true : false;
+    info("Host is now " + host + ".  Catalog is now " + catalog + '. ' + (useAcoustic ? 'U' : 'Not u') + 'sing acoustic similars');
+    configPanel.dialog('close');
+}
+ 
+function clearSessionInfo() {
+}
+ 
+function adjustCombined() {
+    combined = $('#steer_combined').val();
+    if (combined == 'more_mellow') {
+        $('#steer_tempo').val('way_less');
+        $('#steer_dance').val('way_less');
+        $('#steer_loudness').val('loudness_way_less');
+        $('#steer_energy').val('way_less');
+    } else if (combined == 'more_upbeat') {
+        $('#steer_tempo').val('way_more');
+        $('#steer_dance').val('way_more');
+        $('#steer_loudness').val('loudness_way_more');
+        $('#steer_energy').val('way_more');
+    } else if (combined == 'no_change') {
+        $('#steer_tempo').val('no_change');
+        $('#steer_dance').val('no_change');
+        $('#steer_loudness').val('no_change');
+        $('#steer_energy').val('no_change');
+    } else if (combined == 'dont_care') {
+        $('#steer_tempo').val('dont_care');
+        $('#steer_dance').val('dont_care');
+        $('#steer_loudness').val('dont_care');
+        $('#steer_energy').val('dont_care');
+    }
+}
+ 
+// try to avoid html/json injects
+function sanitize(s) {
+    s = s.replace(/[<>&]/g, "");
+    return s;
+}
+ 
+ 
+function updateTerms(terms) {
+    // show top terms 
+    var maxLength = 20;
+    $("#steering_predefined_terms").empty();
+    var maxTerms = 10;
+    $("#steering_predefined_terms").append( "<option value='custom'>Custom</option>");
+    for (var i in terms) {
+        if (i >= maxTerms) {
+            break;
+        }
+        var term = terms[i];
+        var name = term['name'];
+        $("#steering_predefined_terms").append( "<option value='" + name + "'>" + pad(name, maxLength) + "</option>");
+    }
+}
+ 
+function pad(s, maxLength) {
+    if (s.length <= maxLength) {
+        return s;
+    } else {
+        return s.substring(0, maxLength - 3) + '...';
+    }
+}
+ 
+ 
+function fetchSessionTerms() {
+    var url ="http://" + host + "/api/v4/playlist/session_info" + std_params;
+    log(url);
+ 
+    $.getJSON(url, {"session_id":sessionID}, function(data) {
+            if (checkResponse(data)) {
+                updateTerms(data.response.terms);
+            } 
+        });
+}
+ 
+function fetchSessionInfo() {
+    info("Fetching session info");
+    var url ="http://" + host + "/api/v4/playlist/session_info" + std_params;
+    log(url);
+ 
+    $.getJSON(url, {"session_id":sessionID}, function(data) {
+            clearInfo();
+            clearSessionInfo();
+            if (checkResponse(data)) {
+                showSessionInfo(data.response);
+            } 
+        });
+}
+ 
+function newArtistPlaylist() {
+    clearSession();
+    var artist_name = sanitize($("#artist_name").val());
+ 
+    if (jQuery.trim(artist_name).length == 0) {
+        error("You have to enter an artist name first.");
+        return;
+    }
+ 
+    info("Searching for " + artist_name);
+    var url ="http://" + host + "/api/v4/artist/search" + std_params + "&sort=hotttnesss-desc" 
+            + "&bucket=hotttnesss";
+ 
+    $.getJSON(url, {"name": artist_name}, function(data) {
+            if (checkResponse(data)) {
+                if (data.response.artists.length > 0) {
+                    var artist = data.response.artists[0];
+                    fetchArtistPlaylist(artist);
+                }  else {
+                    warn("Couldn't find artist " + artist_name);
+                }
+            } 
+        });
+}
+ 
+function newDescriptionPlaylist() {
+    clearSession();
+    var desc = sanitize($("#description_field").val());
+ 
+    if (jQuery.trim(desc).length == 0) {
+        error("You have to enter a description first.");
+        return;
+    }
+ 
+    setSessionSeedInfo("Description playlist with seed description " + desc);
+    info("Creating a playlist of songs by " + desc + " artists.");
+    desc = normalize_description(desc);
+ 
+    var url ="http://" + host + "/api/v4/playlist/dynamic" + std_playlist_params;
+ 
+    $.getJSON(url, {
+            "description":desc, 
+            "bucket" : "id:" + catalog,
+            "variety" : getVariety(), 
+            "artist_min_hotttnesss": getTaste(),
+            "type": "artist-description"}, function(data) {
+            clearInfo();
+            sessionID = data.response.session_id
+            if (checkResponse(data)) {
+                processSongs(data.response.songs);
+            } 
+        });
+}
+ 
+function newStationPlaylist() {
+    clearSession();
+    var station = $("#station_name").val();
+ 
+    var radio = $('#unrestricted').attr('checked');
+ 
+    var type = 'catalog';
+    if (radio) {
+        type = 'catalog-radio';
+    }
+ 
+    log('type is' + type);
+ 
+    info("Creating a playlist from radio station " + station);
+    setSessionSeedInfo("Station playlist with seed station " + station);
+ 
+    var url ="http://" + host + "/api/v4/playlist/dynamic" + std_playlist_params;
+ 
+    var seed_artist = stations[station].seed_artist;
+    var song_catalog = stations[station].song_catalog;
+ 
+    $.getJSON(url, {
+            "source_catalog": song_catalog, 
+            "bucket" : "id:" + catalog,
+            "variety" : getVariety(), 
+            "artist_min_hotttnesss": getTaste(),
+            "type": type}, function(data) {
+            clearInfo();
+            sessionID = data.response.session_id
+            if (checkResponse(data)) {
+                processSongs(data.response.songs);
+            } 
+        });
+}
+ 
+function normalize_description(description) {
+    var desc = description.split(",");
+    for (var i in desc) {
+         var d  = jQuery.trim(desc[i]);
+         if (d.length > 0) {
+             // force all params to be required unless
+             // we are skipping them
+             if (d[0] != '-') {
+                 d = '^' + d;
+             }
+             desc[i] = d;
+         }
+    }
+    return desc;
+}
+ 
+// Given a song, if tries to fetch and display cover art from 7Digital
+ 
+function fetchCoverArt(song) {
+    var url ="http://" + host + "/api/v4/song/profile" + std_params + "&bucket=id:7digital&bucket=tracks";
+ 
+    $.getJSON(url, {"id": song.id}, function(data) {
+            if (checkResponse(data)) {
+                if (data.response.songs.length > 0) {
+                    var coverart = getCoverArt(data.response.songs[0]);
+                    if (coverart != null) {
+                        displayCoverArt(coverart);
+                    }
+                }
+            } 
+        });
+}
+ 
+function fetchSongPlaylist(song, useBFT) {
+    clearSession();
+    var url ="http://" + host + "/api/v4/playlist/dynamic" + std_playlist_params;
+ 
+    setSessionSeedInfo("Song playlist with seed song " + song.title + " by " + song.artist_name);
+    if (useBFT) {
+        info("Matched '" + song.title + "' by " + song.artist_name + ". Building a playlist of acoustically similar songs.");
+    } else {
+        info("Matched '" + song.title + "' by " + song.artist_name + ". Building a playlist of similar sounding songs.");
+    }
+    $.getJSON(url, {"song_id": song.id, 
+                    "type":"song-radio", 
+                    "bucket" : "id:" + catalog,
+                    "variety": getVariety(),
+                    "artist_min_hotttnesss": getTaste(),
+                    "bft": useBFT
+                    }, function(data) {
+            sessionID = data.response.session_id
+            clearInfo();
+            if (checkResponse(data)) {
+                processSongs(data.response.songs);
+            } 
+        });
+}
+ 
+function newSongPlaylist(stage) {
+    clearSession();
+    var artist_name = sanitize($("#song_artist_name").val());
+    var song_name = sanitize($("#song_song_name").val());
+ 
+    if (jQuery.trim(song_name).length == 0) {
+        error("You have to enter a song name first.");
+        return;
+    }
+ 
+    if (jQuery.trim(artist_name).length == 0) {
+        error("You have to enter an artist name first.");
+        return;
+    }
+ 
+    var url ="http://" + host + "/api/v4/song/search" +
+        "?api_key=3YDUQHGT9ZVUBFBR0" +
+        "&format=jsonp" +
+        "&bucket=artist_hotttnesss" +
+        "&callback=?" 
+ 
+    options =  {"title": song_name, "artist" : artist_name};
+ 
+    // In order to use the S2S similar, we need a song that
+    // is in the CCR catalog, so we search there first. Since
+    // the ccr catalog is rather small, we fall back to the
+    // general catalog if we can't find it.  We can turn off
+    // this behavior by setting useDoubleSearch to false
+ 
+    var useBFT = stage == 1 && useAcoustic;
+    if (useBFT) {
+        options['bucket'] = 'id:' + catalog;
+        options['limit'] = true;
+        info("Searching for " + song_name + " by " + artist_name + " in the " + catalog + " catalog");
+    } else {
+        info("Searching for " + song_name + " by " + artist_name + " in the general catalog");
+    }
+ 
+    $.getJSON(url, options, function(data) {
+            if (checkResponse(data)) {
+                if (data.response.songs.length > 0) {
+                    var song = data.response.songs[0];
+                    if (songMatch(artist_name, song_name, song)) {
+                        fetchSongPlaylist(song, useBFT);
+                    } else {
+                        if (useBFT) {
+                            newSongPlaylist(2);
+                        } else {
+                            warn("Couldn't find a match for song " + song_name + " by  " + artist_name);
+                        }
+                    }
+                } else {
+                    if (useBFT) {
+                        newSongPlaylist(2);
+                    } else {
+                        warn("Couldn't find song " + song_name + " by " + artist_name);
+                    }
+                }
+            } 
+        });
+}
+ 
+// see if we really found the song
+// we are ignoring matching the artist here because of the bjork/bjÃ¶rk problem
+// people don't type accents, but collapsing them is not trivial
+ 
+function songMatch(artistName, songName, song) {
+    //return fuzzyMatch(artistName, song.artist_name) && fuzzyMatch(songName, song.title);
+    return fuzzyMatch(songName, song.title);
+}
+ 
+function fuzzyMatch(s1, s2) {
+    s1 = snorm(s1);
+    s2 = snorm(s2);
+    if (s1 === s2) {
+        return true;
+    } else if (s1.indexOf(s2) >= 0) {
+        return true;
+    } else if (s2.indexOf(s1) >= 0) {
+        return true;
+    }
+    return false;
+}
+ 
+// normalize a string for fuzzy matching
+function snorm(s) {
+    s = s.toLowerCase().trim();
+    // flatten to just ascii and spaces
+    s = s.replace(/[^\w ]/g, ' ');
+    // reduce consecutive whitespace to single whitespce
+    s = s.replace(/\s+/g, ' ');
+    return s;
+}
+ 
+</script> 
+</head> 
+ 
+<body><h1> Playlist Playground</h1> 
+ 
+<div class="demo"> 
+ 
+ 
+<div id="tabs"> 
+    <ul> 
+        <li><a href="#tabs-1">Artist</a></li> 
+        <li><a href="#tabs-2">Song</a></li> 
+        <li><a href="#tabs-3">Description</a></li> 
+        <!--<li><a href="#tabs-4">Station</a></li>  --> 
+    </ul> 
+    <div id="tabs-1"> 
+         <form id="artist-playlist"> 
+               <span>Artist: 
+                   <input type="text" id="artist_name" name="artist" autocomplete="off"> 
+                   <input type="text" style="display:none"> 
+                   <input type="button" value="Create new session" onClick="newArtistPlaylist()"> 
+               </span> 
+         </form> 
+ 
+    </div> 
+    <div id="tabs-2"> 
+         <form id="song-playlist"> 
+               <span>Artist: 
+                   <input type="text" id="song_artist_name" name="song_artist_name" autocomplete="off"> 
+               Song: 
+                   <input type="text" id="song_song_name" name="song_song_name" autocomplete="off"> 
+                   <input type="button" value="Create new session" onClick="newSongPlaylist(1)"> 
+               </span> 
+         </form> 
+    </div> 
+    <div id="tabs-3"> 
+         <form id="description-playlist"> 
+               <span>Description: 
+                   <input type="text" id="description_field"
+                   name="description_field" size=50 autocomplete="off"> 
+                   <input type="text" style="display:none"> 
+                   <input type="button" value="Create new session" onClick="newDescriptionPlaylist()"> 
+               </span> 
+         </form> 
+    </div> 
+    <!--
+    <div id="tabs-4">
+         <form id="station">
+           <fieldset id="station">
+               <span>Seed Station: 
+               <select id=station_name>
+                     <option value="WHTZ">Z100</option>
+                     <option value="KKRW">KKRW</option>
+                     <option value="KBCO">KBCO</option>
+                     <option value="KEXP">KEXP</option>
+                     <option value="WFMU">WFMU</option>
+               </select>
+               <span>
+                   <input type="radio" selected name="mode" checked="checked" value="restricted"/>Restricted
+                   <input id='unrestricted' type="radio" name="mode" value="unrestricted"/>Unrestricted
+                   <input type="button" value="Create new session" onClick="newStationPlaylist()">
+               </span>
+               </span>
+           </fieldset>
+         </form>
+    </div>
+    --> 
+ 
+<div id="session_controls"> 
+       <!--
+       <fieldset name=controls">
+       <legend>Session controls</legend>
+       --> 
+       Playlist Variety 
+       <select id="variety"> 
+             <option selected value=".12">Low</option> 
+             <option value=".3">Medium</option> 
+             <option value=".5">High</option> 
+             <!--<option value="1">Very high</option> --> 
+       </select> &nbsp; &nbsp;
+       Hotttnesss 
+       <select id="taste"> 
+             <option value=".0">All</option> 
+             <option selected value=".4">Moderately Hot</option> 
+             <option value=".6">Very Hot</option> 
+       </select> &nbsp; &nbsp;
+</div> 
+</div> 
+ 
+<br clear=all> 
+<div id="info_area"> 
+    <span id="info_list"> </span> 
+</div> 
+ 
+<div id="session_data"> 
+<h2> Now Playing </h2> 
+    <div class="std" id="nowplaying"> 
+        <div id="coverart"> </div> 
+        <div id='song_title'> 
+              <span id="np_title"> </span>  by <span id="np_artist"> </span> 
+        </div> 
+ 
+        <fieldset id="track_info" onclick="showTrackDetails(curSong)"> 
+        <legend> Track info </legend> 
+        <div id="np_values"> 
+            <table> 
+                <tr> <th> Artist Hotttnesss: <td> <span id="np_artist_hotttnesss"><span></tr> 
+                <tr> <th> Artist Familiarity: <td> <span id="np_artist_familiarity"><span></tr> 
+                <tr> <th> Song Hotttnesss: <td> <span id="np_song_hotttnesss"><span></tr> 
+                <tr> <th> Loudness (db): <td> <span id="np_loudness"><span></tr> 
+                <tr> <th> Start Time: <td> <span id="np_start_time"><span></tr> 
+                <!--<tr> <td> <span id="spotify"> Here's spotify </span> </td> --> 
+            </table> 
+        </div> 
+        <div id="np_values2"> 
+            <table> 
+                <tr> <th> Energy: <td> <span id="np_energy"><span></tr> 
+                <tr> <th> Danceability: <td> <span id="np_danceability"><span></tr> 
+                <tr> <th> Tempo (BPM): <td> <span id="np_tempo"><span> </tr> 
+                <tr> <th> Duration: <td> <span id="np_duration"><span></tr> 
+                <tr> <th> Time: <td> <span id="np_time"><span></tr> 
+            </table> 
+        </div> 
+        </fieldset> 
+    <fieldset id="steering_outer"> 
+       <legend>Steering</legend> 
+       <div id="steering"> 
+       <table> 
+       <tr> 
+       <td> 
+       Audio Steering: <select onChange="adjustCombined()" id="steer_combined"> 
+             <option value="no_change">no change</option> 
+             <option value="more_mellow">More mellow</option> 
+             <option value="more_upbeat">More upbeat</option> 
+             <option value="dont_care">don't care</option> 
+       </select> &nbsp; &nbsp;
+       </td> 
+       <td> 
+       Hotttnesss: <select id="steer_song_hotttnesss"> 
+             <option value="no_change">no change</option> 
+             <option value="more">hottter</option> 
+             <option value="like_this">like this</option> 
+             <option value="less">cooler</option> 
+             <option value="dont_care">don't care</option> 
+       </select> &nbsp; &nbsp;
+       </td> 
+       </tr> 
+       <tr> <td> 
+       Tempo: <select id="steer_tempo"> 
+             <!--
+             <option value="no_change">no change</option>
+             <option value="more">faster</option>
+             <option value="like_this">like this</option>
+             <option value="less">slower</option>
+             <option value="way_more">way faster</option>
+             <option value="way_less">way slower</option>
+             <option value="dont_care">don't care</option>
+             --> 
+             <option value="no_change">no change</option> 
+             <option value="way_more">faster</option> 
+             <option value="way_less">slower</option> 
+             <option value="dont_care">don't care</option> 
+       </select> &nbsp; &nbsp;
+       </td> 
+ 
+       <td> 
+       Energy: <select id="steer_energy"> 
+             <!--
+             <option value="no_change">no change</option>
+             <option value="more">more</option>
+             <option value="like_this">like this</option>
+             <option value="less">less</option>
+             <option value="way_more">way more</option>
+             <option value="way_less">way less</option>
+             <option value="dont_care">don't care</option>
+             --> 
+             <option value="no_change">no change</option> 
+             <option value="way_more">more</option> 
+             <option value="way_less">less</option> 
+             <option value="dont_care">don't care</option> 
+       </select> &nbsp; &nbsp;
+       </td> 
+       </tr> 
+ 
+       <tr> 
+       <td> 
+ 
+       Dance: <select id="steer_dance"> 
+             <!--
+             <option value="no_change">no change</option>
+             <option value="more">more</option>
+             <option value="like_this">like this</option>
+             <option value="less">less</option>
+             <option value="way_more">way more</option>
+             <option value="way_less">way less</option>
+             <option value="dont_care">don't care</option>
+             --> 
+             <option value="no_change">no change</option> 
+             <option value="way_more">more</option> 
+             <option value="way_less">less</option> 
+             <option value="dont_care">don't care</option> 
+       </select> &nbsp; &nbsp;
+       </td> 
+ 
+       <td> 
+       Loudness: <select id="steer_loudness"> 
+             <!--
+             <option value="no_change">no change</option>
+             <option value="loudness_more">louder</option>
+             <option value="like_this">like this</option>
+             <option value="loudness_less">softer</option>
+             <option value="loudness_way_more">way louder</option>
+             <option value="loudness_way_less">way softer</option>
+             <option value="dont_care">don't care</option>
+             --> 
+             <option value="no_change">no change</option> 
+             <option value="loudness_way_more">louder</option> 
+             <option value="loudness_way_less">softer</option> 
+             <option value="dont_care">don't care</option> 
+       </select> &nbsp; &nbsp;
+ 
+       </td> 
+       </tr> 
+ 
+       <tr> 
+        <td> 
+        Term: 
+       <select id="steering_predefined_terms"> 
+             <option value="term_more">jazz</option> 
+             <option value="term_ban">rock</option> 
+             <option value="term_require">alternative</option> 
+             <option value="term_require">singer songwriter</option> 
+             <option value="dont_care">don't care</option> 
+       </select> &nbsp; &nbsp;
+       <!--
+       --> 
+       <td> 
+       <input type="text" size=18 id="steering_term" name="steering_term" autocomplete="off"> 
+       <select id="steering_term_weight"> 
+             <option value="no_change">no change</option> 
+             <option value="term_more">more</option> 
+             <option value="term_ban">ban</option> 
+             <option value="term_require">require</option> 
+             <option value="dont_care">don't care</option> 
+       </select> &nbsp; &nbsp;
+        </td> 
+        <!--
+        <td>
+            <select id="term_weight">
+                 <option value="0">More</option>
+                 <option value="1">Less</option>
+                 <option value="3">Ban</option>
+                 <option value="4">Sticky</option>
+                 <option value="5">Reset</option>
+           </select> &nbsp; &nbsp;
+       </td>
+       --> 
+       </tr> 
+       </table> 
+       </div> 
+    </fieldset> 
+    <br clear=all> 
+ 
+    <div id="main_controls"> 
+       <div class="std" id="steering_controls"> 
+           Song Rating
+           <select id="rating"> 
+                 <option value="0">no rating</option> 
+                 <option value="1"> &#10029;</option> 
+                 <option value="2">&#10029;&#10029;</option> 
+                 <option value="3">&#10029;&#10029;&#10029;</option> 
+                 <option value="4">&#10029;&#10029;&#10029;&#10029;</option> 
+                 <option value="5">&#10029;&#10029;&#10029;&#10029;&#10029;</option> 
+           </select> &nbsp; &nbsp;
+          <input type="checkbox" id="ban_song" name="ban_artist">Ban song&nbsp;&nbsp;
+          <input type="checkbox" id="ban_artist" name="ban_artist">Ban artist&nbsp;&nbsp;
+        </div> 
+ 
+        <div class="std" id="nowplaying_controls"> 
+           <input type="button" value="next" onClick="nextSong(-1)"> 
+           <input type="button" value="next 10" onClick="advanceNSongs(10)"> 
+           <input type="button" id="skip_button" value="skip" onClick="nextSong(5)"> 
+           <span id="pbuttons"> 
+               <input type="button" value="play" onClick="audioPlay()"> 
+               <input type="button" value="pause" onClick="audioPause()"> 
+              <input type="checkbox" checked=checked id="auto_play" >Auto play&nbsp;&nbsp;
+              <input type="checkbox" checked=checked id="auto_advance">Auto advance&nbsp;&nbsp;
+              <input type="checkbox" onClick="simulateTimeClicked()" id="sim_time">Simulate time&nbsp;&nbsp;
+               <input type="button" value="Session info" onClick="fetchSessionInfo()"> 
+               <input type="button" value="feedback" onClick="complain()"> 
+         </span> 
+       </div> 
+     </div> 
+</div> 
+ 
+<div id="config_panel"> 
+   <h3> Set debugging parameters</h3> 
+   <span>API Host: 
+       <input type="text" size=32 id="config_host" name="config_host" autocomplete="off"> <br> 
+   <span>Catalog : 
+       <input type="text" size=32 id="config_catalog" name="config_catalog" autocomplete="off"><br/> 
+   </span> 
+   <span><input type="checkbox" id="config_acoustic_similars"/> <label for="config_acoustic_similars">Use Acoustic Similars</label> 
+   </span> 
+   <br> 
+   <input type="button" value="Apply" onClick="applyNewConfig()"> 
+   <br> 
+   <i> Note that this dialog won't be visible in the released version</i> 
+</div> 
+ 
+<div id="next10_dialog"> 
+    Simulating the play of the next 10 songs
+</div> 
+ 
+<div id="track_details"> 
+    <div id='td_song_title'> 
+          <span id="td_title"> </span>  by <span id="td_artist"> </span> 
+    </div> 
+    <div id="np_values"> 
+        <table> 
+            <tr> <th> Artist Hotttnesss: <td> <span id="td_artist_hotttnesss"><span></tr> 
+            <tr> <th> Artist Familiarity: <td> <span id="td_artist_familiarity"><span></tr> 
+            <tr> <th> Song Hotttnesss: <td> <span id="td_song_hotttnesss"><span></tr> 
+            <tr> <th> Loudness (db): <td> <span id="td_loudness"><span></tr> 
+            <tr> <th> Start Time: <td> <span id="td_start_time"><span></tr> 
+        </table> 
+    </div> 
+    <div id="np_values2"> 
+        <table> 
+            <tr> <th> Energy: <td> <span id="td_energy"><span></tr> 
+            <tr> <th> Danceability: <td> <span id="td_danceability"><span></tr> 
+            <tr> <th> Tempo (BPM): <td> <span id="td_tempo"><span> </tr> 
+            <tr> <th> Duration: <td> <span id="td_duration"><span></tr> 
+            <tr> <th> <td> <span id="td_play"><span></tr> 
+        </table> 
+    </div> 
+</div> 
+ 
+<div id="session_info"> 
+<!--<h2> Session Info</h2> --> 
+<h3> General info </h3> 
+<p> 
+    <ul> 
+      <li> Session type:<span id="gi_session_type"> </span> 
+      <li> Session seed:<span id="gi_session_seed"> </span> 
+      <li> Session id  : <span id="gi_session_id"> </span> 
+    </ul> 
+<p> 
+<table> 
+    <tr><th class=thead>Host:</th><td><span class=tdata id="gi_host">test2</span></td> 
+        <th class=thead>Unique artists:</th><td><span class=tdata id="gi_artists">test2</span></td> 
+    </tr> 
+    <tr><th class=thead>Catalog:</th><td><span class=tdata id="gi_catalog">test2</span></td> 
+        <th class=thead>Unique songs:</th><td><span class=tdata id="gi_songs">test1</span></td> 
+    </tr> 
+</table> 
+<h3> Rules</h3> 
+<ul id="session_rules"></ul> 
+<h3> Description </h3> 
+<ul class=horiz id="session_description"></ul> 
+<h3> Banned Artists</h3> 
+<ul class=horiz id="session_banned_artists"></ul> 
+<h3> Banned songs</h3> 
+<ul class=horiz id="session_banned_songs"></ul> 
+<h3> Rated Songs</h3> 
+<ul class=horiz id="session_rated_songs"></ul> 
+<h3> Skipped Songs</h3> 
+<ul class=horiz id="session_skipped_songs"></ul> 
+<h3> Top Terms</h3> 
+<ul class=horiz id="session_top_terms"></ul> 
+</div> 
+ 
+<h2> Track Future </h2> 
+<table cellpadding="0" cellspacing="0" border="0" class="display" id="future_tracks"> 
+    <thead> 
+        <tr> 
+            <th>#</th> 
+            <th>Time</th> 
+            <th>Title</th> 
+            <th>Artist</th> 
+            <th>Artist<br>Hottt</th> 
+            <th>Artist<br>Fam</th> 
+            <th>Song<br>Hottt</th> 
+            <th>Tempo</th> 
+            <th>Energy</th> 
+            <th>Dance</th> 
+            <th>Loudnesss</th> 
+            <!--<th>Action</th> --> 
+        </tr> 
+    </thead> 
+    <tbody> </tbody> 
+</table> 
+    
+<h2> Track History </h2> 
+ 
+<table cellpadding="0" cellspacing="0" border="0" class="display" id="tracklist"> 
+    <thead> 
+        <tr> 
+            <th>#</th> 
+            <th>Time</th> 
+            <th>Title</th> 
+            <th>Artist</th> 
+            <th>Artist<br>Hottt</th> 
+            <th>Artist<br>Fam</th> 
+            <th>Song<br>Hottt</th> 
+            <th>Tempo</th> 
+            <th>Energy</th> 
+            <th>Dance</th> 
+            <th>Loudnesss</th> 
+            <th>Term</th> 
+        </tr> 
+    </thead> 
+    <tbody> 
+    </tbody> 
+</table> 
+ 
+</div> 
+ 
+<div id="footer"> 
+    The Playlist Playground is <a onClick="showConfigDialog()">powered </a>by 
+    <a href="http://developer.echonest.com">The Echo Nest</a> 
+    playlist technologies.
+    <br> 
+    For more information read the <a href="faq.html">FAQ </a>.
+</div> 
+ 
+<div id="complain"> 
+    <p> If you have some feedback about a playlist, click <span id=complaint-email><a href="">send feedback</a></span>. Be sure to fill in a description of the feedback and any other pertinent info.  To preserve the session for analysis, don't use this session anymore. Instead, create a new session.
+    </p> 
+</div> 
+ 
+</body> 
+</html> 
